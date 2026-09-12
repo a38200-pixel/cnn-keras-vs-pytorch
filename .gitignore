@@ -1,0 +1,10 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.venv/
+.venv-metal/
+emotion_dataset/
+experiments/*/results/*.keras
+experiments/*/results/*.pt
+!experiments/*/results/.gitkeep
+!summary/figures/.gitkeep
