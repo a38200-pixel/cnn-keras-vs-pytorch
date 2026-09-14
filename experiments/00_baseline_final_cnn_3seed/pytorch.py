@@ -26,6 +26,7 @@ from common.seed_utils import seed_pytorch
 # ============================================================
 EXPERIMENT = "00_baseline_final_cnn_3seed"
 ALIGNMENT = "baseline"
+# Resume the only missing baseline run. Restore [42, 123, 2026] after completion.
 SEEDS = [42, 123, 2026]
 IMG_SIZE, BATCH_SIZE, NUM_CLASSES, EPOCHS = 128, 32, 8, 30
 LEARNING_RATE, EARLY_PATIENCE, LR_PATIENCE, MIN_DELTA = 0.001, 7, 4, 1e-4
@@ -184,6 +185,14 @@ def train_one_seed(seed: int) -> None:
             best_loss, best_epoch, bad_epochs, best_state = val_loss, epoch, 0, copy.deepcopy(model.state_dict())
         else: bad_epochs += 1
         scheduler.step(val_loss)
+        current_lr = optimizer.param_groups[0]["lr"]
+        print(
+            f"seed={seed} epoch={epoch + 1}/{EPOCHS} "
+            f"train_loss={train_loss:.6f} train_acc={train_acc:.4f} "
+            f"val_loss={val_loss:.6f} val_acc={val_acc:.4f} "
+            f"lr={current_lr:.8f} bad_epochs={bad_epochs}",
+            flush=True,
+        )
         if bad_epochs >= EARLY_PATIENCE: break
     elapsed = time.perf_counter() - start
     if best_state is not None: model.load_state_dict(best_state)

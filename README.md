@@ -117,7 +117,7 @@ Keras는 `padding="same"`, PyTorch는 `padding=1`을 사용한다.
 
 본 연구에서는 Keras와 PyTorch 사이의 구현 차이를 하나씩 독립적으로 동일화하는 **OFAT(One-Factor-at-a-Time) 기반 ablation-style controlled experiment**를 수행한다. 이는 model layer 제거 실험이 아니라 implementation factor alignment 연구다. 모든 성능 실험은 Keras 3회 + PyTorch 3회이며 주 지표는 Macro F1이다.
 
-`Gap_seed = Keras Macro F1_seed − PyTorch Macro F1_seed`이며 Mean Gap과 Mean Absolute Gap을 함께 본다. 각 branch는 `current absolute gap − baseline absolute gap`을 Gap Change, 그 반대를 Gap Reduction으로 계산한다. Baseline gap이 거의 0이면 reduction rate는 N/A다.
+`Signed Gap_seed = PyTorch metric_seed − Keras metric_seed`로 정의하며 Absolute Gap은 그 절댓값이다. 각 branch의 Gap Reduction은 `baseline absolute gap − current absolute gap`으로 계산한다. 양수는 Gap 감소, 0 근처는 영향이 작음, 음수는 Gap 증가를 뜻한다. Baseline gap이 거의 0이면 reduction rate는 N/A다.
 
 ### 10. 왜 누적 통제를 사용하지 않았는가?
 
@@ -144,21 +144,27 @@ Keras는 `padding="same"`, PyTorch는 `padding=1`을 사용한다.
 |---|---|---|---|---|
 | ENV | `.venv-metal` 환경 | 완료 | - | GPU 연산 검증 완료 |
 | DATA | Dataset physical split | 완료 | - | 70/15/15 검증 완료 |
-| 00 | Baseline | 완료 | 대기 | GPU sanity 재검증 완료 |
-| 01 | Input Tensor | 완료 (GPU sanity 통과) | 대기 | 대기 |
-| 02 | Batch Order | 완료 (GPU sanity 통과) | 대기 | 대기 |
-| 03 | Augmentation | 완료 (GPU sanity 통과) | 대기 | 대기 |
-| 04 | Initial Weight | 완료 (GPU sanity 통과) | 대기 | 대기 |
-| 05 | Output / Loss | 완료 (GPU sanity 통과) | 대기 | 대기 |
-| 06 | Adam | 완료 (GPU sanity 통과) | 대기 | 대기 |
-| 07 | BatchNorm | 완료 (GPU sanity 통과) | 대기 | 대기 |
-| 08 | Callback / Scheduler | 완료 (GPU sanity 통과) | 대기 | 대기 |
-| 09 | Layer-by-Layer | GPU 변환 점검 완료 | 대기 | 대기 |
+| 00 | Baseline | 완료 | 완료 | 3-Seed 결과 분석 완료 |
+| 01 | Input Tensor | 구현 완료, Input equality/GPU sanity 통과 | 대기 | 학습 후 분석 대기 |
+| 02 | Batch Order | 대기 | 대기 | 대기 |
+| 03 | Augmentation | 대기 | 대기 | 대기 |
+| 04 | Initial Weight | 대기 | 대기 | 대기 |
+| 05 | Output / Loss | 대기 | 대기 | 대기 |
+| 06 | Adam | 대기 | 대기 | 대기 |
+| 07 | BatchNorm | 대기 | 대기 | 대기 |
+| 08 | Callback / Scheduler | 대기 | 대기 | 대기 |
+| 09 | Layer-by-Layer | 초기 GPU sanity 완료 | 대기 | 본 분석 대기 |
 
 ### 13. Baseline 3-Seed Results
 
 <!-- BASELINE_RESULTS_START -->
-> 아직 학습하지 않음.
+| Metric | Keras (mean ± sample std) | PyTorch (mean ± sample std) | Signed Gap (PyTorch - Keras) |
+|---|---:|---:|---:|
+| Test Accuracy | 47.19 ± 2.18% | **51.17 ± 0.11%** | **+3.98%p** |
+| Macro F1 | 45.84 ± 2.45% | **50.08 ± 0.23%** | **+4.23%p** |
+| Test Loss | 1.3669 ± 0.0404 | **1.2733 ± 0.0181** | -0.0936 |
+
+세 Seed 모두 PyTorch가 Keras보다 높은 Accuracy와 Macro F1을 기록했다. 다만 이 결과를 framework 자체의 우월성으로 해석하지 않고, 01~08 OFAT 분석에서 구현 차이를 하나씩 통제해 원인을 검증한다. 상세 결과는 [Experiment 00 README](experiments/00_baseline_final_cnn_3seed/README.md)에 기록했다.
 <!-- BASELINE_RESULTS_END -->
 
 ### 14. Single-Factor Ablation Results
@@ -166,7 +172,7 @@ Keras는 `padding="same"`, PyTorch는 `padding=1`을 사용한다.
 <!-- ABLATION_RESULTS_START -->
 | Experiment | Aligned Variable | Keras F1 | PyTorch F1 | Abs. Gap | Gap Reduction vs Baseline |
 |---|---|---:|---:|---:|---:|
-| Baseline | None | - | - | - | 0 |
+| Baseline | None | 45.84% | 50.08% | 4.23%p | 0 |
 | Input | Input Tensor | - | - | - | - |
 | Batch | Batch Order | - | - | - | - |
 | Augmentation | Augmentation | - | - | - | - |
@@ -185,7 +191,7 @@ Keras는 `padding="same"`, PyTorch는 `padding=1`을 사용한다.
 
 ### 16. 주요 발견
 
-아직 결과가 없으므로 결론을 미리 정하지 않는다. 결과 생성 후 Seed variation, gap 방향, baseline 대비 reduction을 함께 근거로 작성한다.
+Baseline 3-Seed에서 같은 방향의 Framework Gap이 반복됐다. Accuracy 평균 Gap은 PyTorch 기준 +3.98%p, Macro F1 평균 Gap은 +4.23%p였으며, Keras의 Seed 변동성이 더 컸다. 이는 추가 원인 분석을 수행할 근거지만 framework 자체의 인과 효과를 확정하지 않는다.
 
 - Seed마다 우위가 바뀌면 framework 효과보다 stochastic variation이 큰 것으로 보고 H0를 기각하지 않는다.
 - 세 Seed에서 같은 방향의 gap이 반복되면 H1을 검토할 재현성 근거로 사용한다.
@@ -198,8 +204,8 @@ Keras는 `padding="same"`, PyTorch는 `padding=1`을 사용한다.
 <!-- HYPOTHESIS_RESULTS_START -->
 | Hypothesis | Result | Evidence |
 |---|---|---|
-| H0 | Pending | - |
-| H1 | Pending | - |
+| H0 | 근거 약화 | 3 Seed 모두 같은 방향의 Accuracy/Macro F1 Gap이 관찰됨. 3 Seed만으로 통계적 기각을 주장하지 않음 |
+| H1 | 추가 분석 근거 확보 | 반복 가능한 Framework Gap이 관찰되어 01~08 원인 분석을 진행함 |
 | H2 | Pending | - |
 | H3 | Pending | - |
 <!-- HYPOTHESIS_RESULTS_END -->
@@ -266,6 +272,9 @@ python -m pip install -r requirements.txt
 
 ```bash
 .venv-metal/bin/python experiments/00_baseline_final_cnn_3seed/compare.py
+.venv-metal/bin/python experiments/01_input_tensor_alignment/keras.py
+.venv-metal/bin/python experiments/01_input_tensor_alignment/pytorch.py
+.venv-metal/bin/python experiments/01_input_tensor_alignment/compare.py
 .venv-metal/bin/python summary/compare_all_experiments.py
 .venv-metal/bin/python summary/update_readme.py
 ```

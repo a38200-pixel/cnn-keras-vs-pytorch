@@ -99,7 +99,7 @@ def make_sequence(rows, seed: int, training: bool):
 # ============================================================
 def build_model(seed: int):
     import tensorflow as tf
-    from tensorflow.keras import layers
+    from keras import layers
     inputs = layers.Input((IMG_SIZE, IMG_SIZE, 3), name="input")
     x = inputs
     if ALIGNMENT not in {"input_tensor", "diagnostic"}:

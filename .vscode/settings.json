@@ -1,0 +1,7 @@
+{
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv-metal/bin/python",
+    "code-runner.executorMap": {
+        "python": "\"$workspaceRoot/.venv-metal/bin/python\" -u"
+    },
+    "code-runner.runInTerminal": true
+}
