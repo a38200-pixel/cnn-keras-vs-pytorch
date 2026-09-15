@@ -145,7 +145,7 @@ Keras는 `padding="same"`, PyTorch는 `padding=1`을 사용한다.
 | ENV | `.venv-metal` 환경 | 완료 | - | GPU 연산 검증 완료 |
 | DATA | Dataset physical split | 완료 | - | 70/15/15 검증 완료 |
 | 00 | Baseline | 완료 | 완료 | 3-Seed 결과 분석 완료 |
-| 01 | Input Tensor | 구현 완료, Input equality/GPU sanity 통과 | 대기 | 학습 후 분석 대기 |
+| 01 | Input Tensor | 완료, Input equality/GPU sanity 통과 | 완료 | Baseline 비교 및 history 분석 완료 |
 | 02 | Batch Order | 대기 | 대기 | 대기 |
 | 03 | Augmentation | 대기 | 대기 | 대기 |
 | 04 | Initial Weight | 대기 | 대기 | 대기 |
@@ -173,7 +173,7 @@ Keras는 `padding="same"`, PyTorch는 `padding=1`을 사용한다.
 | Experiment | Aligned Variable | Keras F1 | PyTorch F1 | Abs. Gap | Gap Reduction vs Baseline |
 |---|---|---:|---:|---:|---:|
 | Baseline | None | 45.84% | 50.08% | 4.23%p | 0 |
-| Input | Input Tensor | - | - | - | - |
+| Input | Input Tensor | 46.46% | 48.66% | 2.20%p | **2.03%p (48.02%)** |
 | Batch | Batch Order | - | - | - | - |
 | Augmentation | Augmentation | - | - | - | - |
 | Weight | Initial Weight | - | - | - | - |
@@ -193,6 +193,8 @@ Keras는 `padding="same"`, PyTorch는 `padding=1`을 사용한다.
 
 Baseline 3-Seed에서 같은 방향의 Framework Gap이 반복됐다. Accuracy 평균 Gap은 PyTorch 기준 +3.98%p, Macro F1 평균 Gap은 +4.23%p였으며, Keras의 Seed 변동성이 더 컸다. 이는 추가 원인 분석을 수행할 근거지만 framework 자체의 인과 효과를 확정하지 않는다.
 
+Experiment 01에서 augmentation 이전 deterministic input preprocessing을 동일화한 결과, Macro F1 Gap은 4.23%p에서 2.20%p로 48.02%, Accuracy Gap은 3.98%p에서 2.18%p로 45.25% 감소했다. 그러나 Keras Macro F1이 +0.61%p 상승한 것과 동시에 PyTorch Macro F1이 -1.42%p 하락했고, PyTorch의 Macro F1 표준편차가 0.23%p에서 3.72%p로 증가했다. Seed 42에서는 Keras가 PyTorch를 역전했다. 따라서 Input Tensor 처리는 Gap에 영향을 주는 요인이지만 단독 원인으로 보기는 어렵다. 상세 결과는 [Experiment 01 README](experiments/01_input_tensor_alignment/README.md)에 정리했다.
+
 - Seed마다 우위가 바뀌면 framework 효과보다 stochastic variation이 큰 것으로 보고 H0를 기각하지 않는다.
 - 세 Seed에서 같은 방향의 gap이 반복되면 H1을 검토할 재현성 근거로 사용한다.
 - 특정 single-factor branch에서만 gap이 크게 줄면 해당 요소를 주요 원인 후보로 본다.
@@ -206,7 +208,7 @@ Baseline 3-Seed에서 같은 방향의 Framework Gap이 반복됐다. Accuracy �
 |---|---|---|
 | H0 | 근거 약화 | 3 Seed 모두 같은 방향의 Accuracy/Macro F1 Gap이 관찰됨. 3 Seed만으로 통계적 기각을 주장하지 않음 |
 | H1 | 추가 분석 근거 확보 | 반복 가능한 Framework Gap이 관찰되어 01~08 원인 분석을 진행함 |
-| H2 | Pending | - |
+| H2 | 부분 지지 | Input Alignment 후 Macro F1 Gap 48.02%, Accuracy Gap 45.25% 감소. 다만 PyTorch 성능 하락과 Seed 변동 증가가 함께 관찰되어 단독 원인으로 확정하지 않음 |
 | H3 | Pending | - |
 <!-- HYPOTHESIS_RESULTS_END -->
 

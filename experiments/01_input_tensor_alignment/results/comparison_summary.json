@@ -1,0 +1,99 @@
+{
+  "gap_definition": "PyTorch - Keras",
+  "baseline_00": {
+    "keras": {
+      "accuracy_mean": 0.47193221364805565,
+      "accuracy_std": 0.02179477389018709,
+      "macro_f1_mean": 0.4584489064756623,
+      "macro_f1_std": 0.02447342597702371,
+      "test_loss_mean": 1.3668922583262126
+    },
+    "pytorch": {
+      "accuracy_mean": 0.511726433651082,
+      "accuracy_std": 0.0011423565494432966,
+      "macro_f1_mean": 0.5007715209955931,
+      "macro_f1_std": 0.0022546918164197682,
+      "test_loss_mean": 1.2733298723555888
+    },
+    "accuracy_gap": {
+      "definition": "PyTorch - Keras",
+      "paired_difference": {
+        "42": 0.01815705855651395,
+        "123": 0.03812982296867912,
+        "2026": 0.06309577848388565
+      },
+      "signed_gap": 0.03979422000302624,
+      "absolute_gap": 0.03979422000302624
+    },
+    "macro_f1_gap": {
+      "definition": "PyTorch - Keras",
+      "paired_difference": {
+        "42": 0.018618394991111953,
+        "123": 0.04497350824331586,
+        "2026": 0.06337594032536437
+      },
+      "signed_gap": 0.042322614519930725,
+      "absolute_gap": 0.042322614519930725
+    }
+  },
+  "experiment_01": {
+    "keras": {
+      "accuracy_mean": 0.47601755182327127,
+      "accuracy_std": 0.023262716377155025,
+      "macro_f1_mean": 0.4645566654330002,
+      "macro_f1_std": 0.01652501068450924,
+      "test_loss_mean": 1.3615334033966064
+    },
+    "pytorch": {
+      "accuracy_mean": 0.497806022091088,
+      "accuracy_std": 0.032456006694601906,
+      "macro_f1_mean": 0.48655561139145204,
+      "macro_f1_std": 0.037212849954435696,
+      "test_loss_mean": 1.3126317748938303
+    },
+    "accuracy_gap": {
+      "definition": "PyTorch - Keras",
+      "paired_difference": {
+        "42": -0.022242396731729452,
+        "123": 0.0031774852473899773,
+        "2026": 0.0844303222877894
+      },
+      "signed_gap": 0.021788470267816645,
+      "absolute_gap": 0.021788470267816645
+    },
+    "macro_f1_gap": {
+      "definition": "PyTorch - Keras",
+      "paired_difference": {
+        "42": -0.02569168065215721,
+        "123": 0.011465737687851196,
+        "2026": 0.08022278083966167
+      },
+      "signed_gap": 0.021998945958451883,
+      "absolute_gap": 0.021998945958451883
+    }
+  },
+  "gap_change": {
+    "accuracy": {
+      "gap_reduction": 0.018005749735209593,
+      "gap_reduction_rate": 0.4524714828897339
+    },
+    "macro_f1": {
+      "gap_reduction": 0.020323668561478842,
+      "gap_reduction_rate": 0.48020824781294985
+    }
+  },
+  "seed_stability_std_change": {
+    "keras_accuracy": 0.0014679424869679346,
+    "keras_macro_f1": -0.007948415292514468,
+    "pytorch_accuracy": 0.03131365014515861,
+    "pytorch_macro_f1": 0.03495815813801593
+  },
+  "figures": [
+    "results/figures/keras_3seed_loss.png",
+    "results/figures/keras_3seed_accuracy.png",
+    "results/figures/pytorch_3seed_loss.png",
+    "results/figures/pytorch_3seed_accuracy.png",
+    "results/figures/validation_loss_3seed_comparison.png",
+    "results/figures/validation_accuracy_3seed_comparison.png"
+  ]
+}

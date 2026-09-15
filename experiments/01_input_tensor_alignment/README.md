@@ -136,29 +136,87 @@ results/history/pytorch_seed{seed}_history.csv
 
 EarlyStopping이 발생하면 실제로 학습된 epoch까지만 저장하고 그 길이만 그래프에 표시한다.
 
+### 생성된 학습 곡선
+
+![Keras 3-Seed Loss](results/figures/keras_3seed_loss.png)
+
+![Keras 3-Seed Accuracy](results/figures/keras_3seed_accuracy.png)
+
+![PyTorch 3-Seed Loss](results/figures/pytorch_3seed_loss.png)
+
+![PyTorch 3-Seed Accuracy](results/figures/pytorch_3seed_accuracy.png)
+
+![Validation Loss Framework Comparison](results/figures/validation_loss_3seed_comparison.png)
+
+![Validation Accuracy Framework Comparison](results/figures/validation_accuracy_3seed_comparison.png)
+
 ## 11. Results
 
-> 아직 학습하지 않음.
+Keras와 PyTorch의 3-Seed 학습 및 Test 평가를 완료했다.
 
-현재 상태: **구현 및 GPU sanity 완료 / 3-Seed 학습 대기**.
+### Seed별 결과
+
+| Seed | Framework | Test Accuracy | Macro F1 | Test Loss | Best Epoch | Epochs Trained |
+|---:|---|---:|---:|---:|---:|---:|
+| 42 | Keras | 49.43% | 47.91% | 1.3167 | 30 | 30 |
+| 42 | PyTorch | 47.21% | 45.34% | 1.3642 | 15 | 22 |
+| 123 | Keras | 48.39% | 46.79% | 1.3484 | 28 | 30 |
+| 123 | PyTorch | 48.71% | 47.94% | 1.3156 | 17 | 24 |
+| 2026 | Keras | 44.98% | 44.66% | 1.4196 | 13 | 20 |
+| 2026 | PyTorch | 53.43% | 52.68% | 1.2581 | 26 | 30 |
+
+### 3-Seed 평균
+
+표준편차는 3개 Seed의 표본 표준편차(`ddof=1`)다.
+
+| Metric | Keras mean ± std | PyTorch mean ± std | Signed Gap |
+|---|---:|---:|---:|
+| Test Accuracy | 47.60 ± 2.33% | **49.78 ± 3.25%** | +2.18%p |
+| Macro F1 | 46.46 ± 1.65% | **48.66 ± 3.72%** | +2.20%p |
+| Test Loss | 1.3615 ± 0.0527 | **1.3126 ± 0.0531** | -0.0489 |
+
+Signed Gap은 `PyTorch - Keras`다. Seed 42에서는 Accuracy -2.22%p, Macro F1 -2.57%p로 Keras가 PyTorch를 역전했다. Seed 123의 Gap은 Accuracy +0.32%p, Macro F1 +1.15%p로 작았지만 Seed 2026에서는 각각 +8.44%p, +8.02%p로 크게 벌어졌다.
+
+현재 상태: **3-Seed GPU 학습, Test 평가 및 비교 분석 완료**.
 
 ## 12. Comparison with Baseline
 
-학습 완료 후 `compare.py`가 실제 00/01 CSV를 직접 읽어 다음을 계산한다.
+### Framework Gap 변화
 
-- Framework별 mean ± sample std
-- Seed별 paired Accuracy/Macro F1 difference
-- Signed Gap과 Absolute Gap
-- Baseline 대비 Gap Reduction 및 Reduction Rate
-- Keras/PyTorch Accuracy와 Macro F1 표준편차 변화
-- 6개 history figure와 `results/comparison_summary.json`
-- README에 붙여 넣을 Markdown preview
+| Metric | Baseline Gap | Experiment 01 Gap | Gap Reduction | Reduction Rate |
+|---|---:|---:|---:|---:|
+| Accuracy | 3.98%p | 2.18%p | **1.80%p** | **45.25%** |
+| Macro F1 | 4.23%p | 2.20%p | **2.03%p** | **48.02%** |
 
-`compare.py`는 학습하거나 README를 자동 수정하지 않으며 결과가 없으면 대기 메시지만 출력한다.
+### Framework별 평균 성능 변화
+
+| Framework | Accuracy: 00 → 01 | 변화 | Macro F1: 00 → 01 | 변화 |
+|---|---:|---:|---:|---:|
+| Keras | 47.19% → 47.60% | +0.41%p | 45.84% → 46.46% | +0.61%p |
+| PyTorch | 51.17% → 49.78% | -1.39%p | 50.08% → 48.66% | -1.42%p |
+
+Gap 감소는 Keras 성능의 소폭 향상과 PyTorch 평균 성능 하락이 함께 만든 결과다. 따라서 Gap 감소만 보고 Keras 입력 처리의 개선 효과로 단순 해석하지 않는다.
+
+### Seed 안정성 변화
+
+| Framework | Metric | Baseline std | Experiment 01 std | 변화 |
+|---|---|---:|---:|---:|
+| Keras | Accuracy | 2.18%p | 2.33%p | +0.15%p |
+| Keras | Macro F1 | 2.45%p | 1.65%p | -0.79%p |
+| PyTorch | Accuracy | 0.11%p | 3.25%p | **+3.13%p** |
+| PyTorch | Macro F1 | 0.23%p | 3.72%p | **+3.50%p** |
+
+Keras Macro F1 변동성은 감소했지만 Accuracy 변동성은 거의 유지됐다. 반대로 Baseline에서 매우 안정적이었던 PyTorch는 Input Alignment 이후 Seed 민감도가 크게 증가했다.
+
+상세 계산 결과는 [comparison_summary.json](results/comparison_summary.json)에 저장되어 있다. `compare.py`는 학습하거나 README를 자동 수정하지 않는다.
 
 ## 13. Interpretation
 
-결과 생성 후 작성한다. Input Alignment 이후 Macro F1/Accuracy Gap 감소와 Keras Seed 표준편차 변화를 Baseline과 비교해 H01-0/H01-1을 평가한다.
+Experiment 01에서는 Keras와 PyTorch의 augmentation 이전 deterministic input preprocessing을 동일화하였다. 그 결과 평균 Macro F1 Gap은 Baseline의 4.23%p에서 2.20%p로 48.02% 감소했고, Accuracy Gap 역시 3.98%p에서 2.18%p로 45.25% 감소하였다.
+
+그러나 Gap 감소는 Keras의 평균 성능 향상뿐 아니라 PyTorch 평균 성능 하락에도 영향을 받았다. Keras Macro F1은 +0.61%p 상승한 반면 PyTorch는 -1.42%p 하락했다. 또한 Baseline에서 매우 안정적이었던 PyTorch의 Seed 간 변동성이 크게 증가했고, Seed 42에서는 Keras가 PyTorch를 역전했다.
+
+따라서 deterministic Input Tensor 처리 차이는 Framework Gap에 영향을 미치는 요인으로 판단된다. 다만 Seed별 효과의 방향과 크기가 일관되지 않고 Gap이 2.20%p 남았으므로 단독 원인으로 보기는 어렵다. H01-1은 **부분 지지**, H01-0은 **근거가 약화됐지만 완전히 배제할 수 없음**으로 평가한다.
 
 ## 14. Limitations
 
