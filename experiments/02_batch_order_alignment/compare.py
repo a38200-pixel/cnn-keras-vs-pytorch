@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import os
+import csv
+import sys
 import tempfile
 from pathlib import Path
 
@@ -16,12 +18,128 @@ import pandas as pd
 
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+from common.batch_order import RUNTIME_ORDER_FIELDS, order_hash
+
 EXPERIMENT_DIR = Path(__file__).resolve().parent
 RESULTS_DIR = EXPERIMENT_DIR / "results"
 HISTORY_DIR = RESULTS_DIR / "history"
 FIGURES_DIR = RESULTS_DIR / "figures"
+RUNTIME_ORDER_DIR = RESULTS_DIR / "runtime_order"
+BATCH_ORDER_DIR = RESULTS_DIR / "batch_order"
 BASELINE_DIR = ROOT / "experiments" / "00_baseline_final_cnn_3seed" / "results"
 SEEDS = [42, 123, 2026]
+
+
+def validate_runtime_orders() -> dict[str, object]:
+    """Gate performance analysis on orders selected at real epoch boundaries."""
+    errors: list[str] = []
+    missing: list[str] = []
+    details: dict[str, object] = {}
+    for seed in SEEDS:
+        schedule_path = BATCH_ORDER_DIR / f"seed_{seed}_epoch_orders.npz"
+        if not schedule_path.exists():
+            missing.append(str(schedule_path))
+            continue
+        import numpy as np
+
+        with np.load(schedule_path) as archive:
+            schedules = archive["orders"]
+        framework_rows: dict[str, list[dict[str, str]]] = {}
+        seed_detail: dict[str, object] = {}
+        for framework in ("keras", "pytorch"):
+            path = RUNTIME_ORDER_DIR / f"{framework}_seed{seed}_runtime_order.csv"
+            if not path.exists():
+                missing.append(str(path))
+                continue
+            with path.open(encoding="utf-8") as handle:
+                reader = csv.DictReader(handle)
+                rows = list(reader)
+                if reader.fieldnames != RUNTIME_ORDER_FIELDS:
+                    errors.append(f"Unexpected runtime schema: {path}")
+            if not rows:
+                errors.append(f"Empty runtime trace: {path}")
+                continue
+            framework_rows[framework] = rows
+            observed_epochs = [int(row["epoch"]) for row in rows]
+            expected_epochs = list(range(1, len(rows) + 1))
+            if observed_epochs != expected_epochs:
+                errors.append(
+                    f"Non-contiguous epochs: {framework} seed={seed} {observed_epochs}"
+                )
+            for row in rows:
+                epoch = int(row["epoch"])
+                schedule_index = int(row["schedule_index"])
+                if schedule_index != epoch - 1:
+                    errors.append(
+                        f"Epoch/index mismatch: {framework} seed={seed} "
+                        f"epoch={epoch} index={schedule_index}"
+                    )
+                    continue
+                if schedule_index >= len(schedules):
+                    errors.append(f"Schedule index out of range: {framework} seed={seed}")
+                    continue
+                expected_hash = order_hash(schedules[schedule_index])
+                if row["order_hash"] != expected_hash:
+                    errors.append(
+                        f"Schedule hash mismatch: {framework} seed={seed} epoch={epoch}"
+                    )
+                if int(row["num_samples"]) != schedules.shape[1]:
+                    errors.append(
+                        f"Sample-count mismatch: {framework} seed={seed} epoch={epoch}"
+                    )
+            seed_detail[framework] = {
+                "epochs_recorded": len(rows),
+                "first_hash": rows[0]["order_hash"],
+                "last_hash": rows[-1]["order_hash"],
+                "self_schedule_match": not any(
+                    framework in error and f"seed={seed}" in error for error in errors
+                ),
+            }
+
+        if set(framework_rows) == {"keras", "pytorch"}:
+            common_epochs = min(len(framework_rows["keras"]), len(framework_rows["pytorch"]))
+            pair_mismatches = []
+            for index in range(common_epochs):
+                keras_row = framework_rows["keras"][index]
+                torch_row = framework_rows["pytorch"][index]
+                if keras_row["order_hash"] != torch_row["order_hash"]:
+                    pair_mismatches.append(index + 1)
+            if pair_mismatches:
+                errors.append(f"Framework hash mismatch: seed={seed} epochs={pair_mismatches}")
+            seed_detail["common_epochs_compared"] = common_epochs
+            seed_detail["framework_hash_exact_match"] = not pair_mismatches
+        details[str(seed)] = seed_detail
+
+    status = "PENDING" if missing else ("INVALID" if errors else "VALID")
+    return {
+        "status": status,
+        "all_common_epoch_hashes_match": status == "VALID",
+        "details": details,
+        "missing": missing,
+        "errors": errors,
+    }
+
+
+def save_runtime_validation(validation: dict[str, object]) -> Path:
+    path = RESULTS_DIR / "runtime_order_validation.json"
+    path.write_text(json.dumps(validation, indent=2, ensure_ascii=False), encoding="utf-8")
+    return path
+
+
+def print_debugging_reference(keras: pd.DataFrame | None, torch: pd.DataFrame | None) -> None:
+    if keras is None or torch is None:
+        return
+    print("Performance values below are debugging reference only; no OFAT conclusion is generated.")
+    paired = keras.set_index("seed").join(
+        torch.set_index("seed"), lsuffix="_keras", rsuffix="_pytorch"
+    )
+    for seed, row in paired.iterrows():
+        print(
+            f"Seed {seed}: accuracy K={row['test_accuracy_keras']:.6f} "
+            f"P={row['test_accuracy_pytorch']:.6f}; macro_f1 K={row['macro_f1_keras']:.6f} "
+            f"P={row['macro_f1_pytorch']:.6f}"
+        )
 
 
 def load_results(directory: Path, framework: str) -> pd.DataFrame | None:
@@ -152,6 +270,28 @@ Signed Gap = PyTorch - Keras. Experiment 02 is compared directly with Baseline 0
 
 def main() -> None:
     print("Experiment 02 comparison only: no training is performed.")
+    validation = validate_runtime_orders()
+    validation_path = save_runtime_validation(validation)
+    print(f"Experiment Validity: {validation['status']}")
+    print(f"Runtime validation report: {validation_path}")
+    if validation["status"] != "VALID":
+        keras = load_results(RESULTS_DIR, "keras")
+        torch = load_results(RESULTS_DIR, "pytorch")
+        if validation["status"] == "PENDING" and keras is not None and torch is not None:
+            validation["status"] = "INVALID"
+            validation["errors"].append(
+                "Complete performance results exist but runtime-order artifacts are missing."
+            )
+            save_runtime_validation(validation)
+            print("Experiment Validity: INVALID")
+        for item in validation["missing"]:
+            print(f"Missing runtime artifact: {item}")
+        for item in validation["errors"]:
+            print(f"Runtime order error: {item}")
+        print_debugging_reference(keras, torch)
+        print("Performance/Gap/OFAT analysis was not generated because the runtime gate did not pass.")
+        return
+
     keras, torch = load_results(RESULTS_DIR, "keras"), load_results(RESULTS_DIR, "pytorch")
     if keras is None or torch is None:
         print("Experiment 02 is waiting for complete 3-Seed results.")
@@ -166,11 +306,33 @@ def main() -> None:
         print("All six history files are required before plotting.")
         return
 
+    history_count_errors = []
+    for framework, histories in (("keras", keras_histories), ("pytorch", torch_histories)):
+        for seed, history in histories.items():
+            recorded = validation["details"][str(seed)][framework]["epochs_recorded"]
+            if len(history) != recorded:
+                history_count_errors.append(
+                    f"{framework} seed={seed}: history={len(history)}, runtime={recorded}"
+                )
+    if history_count_errors:
+        validation["status"] = "INVALID"
+        validation["all_common_epoch_hashes_match"] = False
+        validation["errors"].extend(history_count_errors)
+        save_runtime_validation(validation)
+        print("Experiment Validity: INVALID")
+        for item in history_count_errors:
+            print(f"Runtime/history count error: {item}")
+        print_debugging_reference(keras, torch)
+        print("Performance/Gap/OFAT analysis was not generated.")
+        return
+
     base_acc = metric_gap(baseline_keras, baseline_torch, "test_accuracy")
     base_f1 = metric_gap(baseline_keras, baseline_torch, "macro_f1")
     current_acc = metric_gap(keras, torch, "test_accuracy")
     current_f1 = metric_gap(keras, torch, "macro_f1")
     summary: dict[str, object] = {
+        "experiment_validity": "VALID",
+        "runtime_order_validation": validation,
         "comparison_reference": "00_baseline_final_cnn_3seed",
         "gap_definition": "PyTorch - Keras",
         "baseline_00": {

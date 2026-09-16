@@ -6,5 +6,7 @@ __pycache__/
 emotion_dataset/
 experiments/*/results/*.keras
 experiments/*/results/*.pt
+experiments/*/archive/**/*.keras
+experiments/*/archive/**/*.pt
 !experiments/*/results/.gitkeep
 !summary/figures/.gitkeep

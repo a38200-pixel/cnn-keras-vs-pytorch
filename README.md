@@ -146,7 +146,7 @@ Keras는 `padding="same"`, PyTorch는 `padding=1`을 사용한다.
 | DATA | Dataset physical split | 완료 | - | 70/15/15 검증 완료 |
 | 00 | Baseline | 완료 | 완료 | 3-Seed 결과 분석 완료 |
 | 01 | Input Tensor | 완료, Input equality/GPU sanity 통과 | 완료 | Baseline 비교 및 history 분석 완료 |
-| 02 | Batch Order | lifecycle bug 수정 완료 | 완료(기존 실행 invalid) | OFAT audit 완료, 재학습 필요 |
+| 02 | Batch Order | Attempt 1 Invalid / Audit 완료 / Bug Fix 완료 | Attempt 2 대기 | 최종 분석 Pending |
 | 03 | Augmentation | 대기 | 대기 | 대기 |
 | 04 | Initial Weight | 대기 | 대기 | 대기 |
 | 05 | Output / Loss | 대기 | 대기 | 대기 |
@@ -174,7 +174,7 @@ Keras는 `padding="same"`, PyTorch는 `padding=1`을 사용한다.
 |---|---|---:|---:|---:|---:|
 | Baseline | None | 45.84% | 50.08% | 4.23%p | 0 |
 | Input | Input Tensor | 46.46% | 48.66% | 2.20%p | **2.03%p (48.02%)** |
-| Batch† | Batch Order | 39.86%† | 48.05%† | 8.18%p† | **무효: 실제 order mismatch, 재학습 필요** |
+| Batch | Batch Order | Pending | Pending | Pending | Pending |
 | Augmentation | Augmentation | - | - | - | - |
 | Weight | Initial Weight | - | - | - | - |
 | Loss | Output / Loss | - | - | - | - |
@@ -183,7 +183,7 @@ Keras는 `padding="same"`, PyTorch는 `padding=1`을 사용한다.
 | Callback | ES / LR Scheduler | - | - | - | - |
 <!-- ABLATION_RESULTS_END -->
 
-† Experiment 02의 숫자는 기존 CSV의 기술적 기록이다. Keras 3가 첫 epoch 전에 `Sequence.on_epoch_end()`를 호출해 Keras와 PyTorch가 서로 다른 epoch permutation을 사용한 사실이 사후 audit에서 확인됐다. 따라서 이 행은 OFAT evidence와 H2 평가에서 제외하며, 수정 코드로 재학습하기 전까지 Baseline 대비 효과로 해석하지 않는다. Experiment 01과 02는 여전히 서로 독립적인 Baseline branch다.
+Experiment 02 Attempt 1은 Keras 3가 첫 epoch 전에 `Sequence.on_epoch_end()`를 호출해 Keras와 PyTorch가 서로 다른 epoch permutation을 사용한 사실이 사후 audit에서 확인되어 archive로 이동했다. 해당 수치는 OFAT evidence와 H2 평가에서 제외한다. lifecycle bug와 runtime-order validation은 수정됐으며 Attempt 2 재학습은 Pending이다. Experiment 01과 02는 서로 독립적인 Baseline branch다.
 
 ### 15. Layer-by-Layer Results
 

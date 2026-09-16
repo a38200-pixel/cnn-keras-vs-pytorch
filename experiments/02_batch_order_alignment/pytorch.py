@@ -13,7 +13,14 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from common.batch_order import batch_groups, order_hash, prepare_batch_order_artifacts
+from common.batch_order import (
+    batch_groups,
+    initialize_runtime_order_log,
+    order_hash,
+    prepare_batch_order_artifacts,
+    record_runtime_order,
+    runtime_order_path,
+)
 from common.dataset_utils import CLASSES, build_split_manifest, find_dataset_root, is_physically_split, split_counts
 from common.environment_utils import print_torch_environment
 from common.history_utils import save_history
@@ -34,6 +41,7 @@ RESULTS_DIR = Path(__file__).parent / "results"
 RESULTS = RESULTS_DIR / "pytorch_results.csv"
 HISTORY_DIR = RESULTS_DIR / "history"
 BATCH_ORDER_DIR = RESULTS_DIR / "batch_order"
+RUNTIME_ORDER_DIR = RESULTS_DIR / "runtime_order"
 
 
 # ============================================================
@@ -159,6 +167,18 @@ def run_batch_order_check(canonical, schedules) -> dict[int, str]:
     first_epoch_orders = []
     dataset = make_dataset(canonical, training=False)
     for seed in SEEDS:
+        selected_hashes = {}
+        observed_schedule_indices = []
+        for expected_index in range(EPOCHS):
+            epoch_loader = make_ordered_loader(dataset, schedules[seed][expected_index])
+            actual_sampler_order = list(iter(epoch_loader.sampler))
+            expected_order = [int(index) for index in schedules[seed][expected_index]]
+            assert actual_sampler_order == expected_order
+            observed_schedule_indices.append(expected_index)
+            if expected_index in {0, 1, EPOCHS - 1}:
+                selected_hashes[expected_index + 1] = order_hash(actual_sampler_order)
+        assert observed_schedule_indices == list(range(EPOCHS))
+
         keras_sequence_order = [int(index) for index in schedules[seed][0]]
         pytorch_loader = make_ordered_loader(dataset, schedules[seed][0])
         pytorch_sampler_order = list(iter(pytorch_loader.sampler))
@@ -179,6 +199,10 @@ def run_batch_order_check(canonical, schedules) -> dict[int, str]:
         print(f"Keras order hash : {keras_hash}")
         print(f"PyTorch order hash: {pytorch_hash}")
         print(f"Exact match: {exact}")
+        print(f"Expected lifecycle: {list(range(EPOCHS))}")
+        print(f"Observed lifecycle: {observed_schedule_indices}")
+        print(f"Lifecycle exact match: {observed_schedule_indices == list(range(EPOCHS))}")
+        print(f"Epoch 1/2/30 shared hashes: {selected_hashes}")
     assert all(
         not np.array_equal(first_epoch_orders[left], first_epoch_orders[right])
         for left in range(len(SEEDS)) for right in range(left + 1, len(SEEDS))
@@ -200,13 +224,13 @@ def result_contains_seed(seed: int) -> bool:
 def seed_is_complete(seed: int) -> bool:
     return result_contains_seed(seed) and (RESULTS_DIR / f"pytorch_seed{seed}.pt").exists() and (
         HISTORY_DIR / f"pytorch_seed{seed}_history.csv"
-    ).exists()
+    ).exists() and runtime_order_path(RUNTIME_ORDER_DIR, "pytorch", seed).exists()
 
 
 def seed_has_partial_artifacts(seed: int) -> bool:
     return result_contains_seed(seed) or (RESULTS_DIR / f"pytorch_seed{seed}.pt").exists() or (
         HISTORY_DIR / f"pytorch_seed{seed}_history.csv"
-    ).exists()
+    ).exists() or runtime_order_path(RUNTIME_ORDER_DIR, "pytorch", seed).exists()
 
 
 def print_training_header(seed: int, device) -> None:
@@ -229,6 +253,7 @@ def train_one_seed(seed: int) -> None:
     device = print_torch_environment(EXPERIMENT, seed)
     print_training_header(seed, device)
     manifest, canonical, schedules = prepare_orders()
+    initialize_runtime_order_log(RUNTIME_ORDER_DIR, "pytorch", seed)
     train_data = make_dataset(canonical, training=True)
     val_loader = make_ordered_loader(make_dataset(manifest["val"], training=False))
     test_loader = make_ordered_loader(make_dataset(manifest["test"], training=False))
@@ -245,6 +270,13 @@ def train_one_seed(seed: int) -> None:
     for epoch in range(EPOCHS):
         epoch_started = time.perf_counter()
         train_loader = make_ordered_loader(train_data, schedules[seed][epoch])
+        actual_sampler_order = list(iter(train_loader.sampler))
+        record_runtime_order(
+            RUNTIME_ORDER_DIR, "pytorch", seed,
+            epoch=epoch + 1, schedule_index=epoch,
+            order=actual_sampler_order, canonical=canonical,
+            dataset_root=find_dataset_root(), batch_size=BATCH_SIZE,
+        )
         model.train()
         loss_sum = correct = total = 0
         progress = tqdm(

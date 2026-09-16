@@ -1,6 +1,28 @@
 # Experiment 02 - Batch Order Alignment
 
-> **OFAT audit status: INVALID / 재학습 필요.** 기존 3-Seed 실행에서 Keras 3의 pre-fit `on_epoch_end()` 호출 때문에 Keras permutation이 PyTorch보다 한 칸 앞서 사용됐다. 아래 결과는 실제 CSV/history의 기술적 기록이며 Batch Order Alignment의 인과 효과나 가설 판정에 사용하지 않는다. 코드는 실제 epoch 시작 시 order를 선택하도록 수정했고 `RUN_TRAINING = False`로 되돌렸다.
+## Attempt 1 - Invalid
+
+기존 3-Seed 실행은 Keras 3의 pre-fit `on_epoch_end()` 호출 때문에 Keras permutation이 PyTorch보다 한 칸 앞서 사용됐다. 실제 training order가 일치하지 않았으므로 OFAT 분석에서 제외했다.
+
+기존 CSV, history, figure, model과 schedule은 삭제하지 않고 다음 위치에 보존했다.
+
+```text
+archive/invalid_run_01/
+```
+
+아래 Attempt 1 수치와 곡선은 technical debugging record일 뿐 Batch Order Alignment의 효과나 가설 판정에 사용하지 않는다.
+
+## Bug Fix
+
+- Order advance를 Keras 내부의 추가 호출 가능성이 있는 `on_epoch_end()`에서 제거했다.
+- 실제 training `on_epoch_begin()`에서 epoch N → schedule index N-1을 명시적으로 적용한다.
+- Seed별 30-epoch lifecycle simulation에서 observed index `0..29`를 검증한다.
+- 실제 학습 시 Framework/Seed/Epoch별 전체 order SHA-256과 첫 3개 batch preview를 `results/runtime_order/`에 기록한다.
+- `compare.py`는 공통 실행 epoch의 Keras/PyTorch hash, 각 Framework의 schedule index/hash와 history epoch 수가 모두 맞아야 성능 분석을 수행한다.
+
+## Attempt 2 - Pending
+
+> **3-Seed retraining pending.** Active results는 초기화됐고 수정 코드의 lifecycle/order simulation과 GPU single-forward sanity만 수행했다. `RUN_TRAINING = False`이며 실제 재학습은 아직 시작하지 않았다.
 
 ## 1. Experiment Purpose
 
@@ -76,6 +98,19 @@ results/batch_order/seed_2026_epoch_orders.npz
 
 한 permutation을 32개씩 자르므로 epoch당 321 batches이며 마지막 batch는 11 samples다. PyTorch는 fixed sampler와 `shuffle=False, drop_last=False, num_workers=0`을 사용한다.
 
+### Runtime evidence
+
+실제 재학습에서는 epoch 시작 시 선택된 전체 index sequence를 다음 파일에 즉시 기록한다.
+
+```text
+results/runtime_order/keras_seed{seed}_runtime_order.csv
+results/runtime_order/pytorch_seed{seed}_runtime_order.csv
+```
+
+Schema는 `framework, seed, epoch, schedule_index, num_samples, order_hash`다. 각 epoch의 첫 3개 batch는 `results/runtime_order/previews/{framework}_seed{seed}_epoch{epoch}_preview.csv`에 sample index와 relative path로 저장하며 이미지는 복사하지 않는다.
+
+`compare.py`는 성능 파일보다 runtime trace를 먼저 검사한다. 각 Framework가 epoch N에 schedule N-1을 사용했는지, hash가 persisted NPZ와 같은지, 공통 실행 epoch의 Keras/PyTorch hash가 모두 같은지 검증한다. EarlyStopping으로 epoch 수가 다르면 공통 구간은 양쪽 hash를 비교하고 나머지는 해당 Framework의 schedule과 자체 비교한다. 이 gate 또는 runtime/history epoch count가 실패하면 `Experiment Validity: INVALID`를 출력하고 OFAT 성능 분석을 생성하지 않는다.
+
 ### 발견된 Keras lifecycle bug
 
 기존 Keras `Sequence`는 `on_epoch_end()`에서 다음 permutation으로 이동했다. Keras 3 `fit()`은 첫 실제 epoch 전에 `epoch_iterator.reset()`을 호출하며, 이 reset도 `on_epoch_end()`를 호출한다.
@@ -143,7 +178,7 @@ Canonical list, NPZ와 preview는 정상이고 각 permutation은 10,251개 inde
 
 ## 14. Gap Effect — Not Eligible for OFAT Conclusion
 
-원시 계산상 Accuracy absolute gap은 3.98→6.16%p, Macro F1 absolute gap은 4.23→8.18%p다. 각각 54.75%, 93.33% 확대에 해당한다. 이 값들은 `comparison_summary.json`의 산술 결과와 일치하지만, intervention fidelity가 실패했으므로 유효한 Gap Reduction/Expansion 추정치가 아니다.
+원시 계산상 Accuracy absolute gap은 3.98→6.16%p, Macro F1 absolute gap은 4.23→8.18%p다. 각각 54.75%, 93.33% 확대에 해당한다. 이 값들은 `archive/invalid_run_01/comparison_summary.json`의 산술 결과와 일치하지만, intervention fidelity가 실패했으므로 유효한 Gap Reduction/Expansion 추정치가 아니다.
 
 ## 15. Seed Stability — Descriptive Only
 
@@ -177,17 +212,17 @@ Keras는 Accuracy 35.81%, Macro F1 30.35%, best validation-loss epoch 7, 14 epoc
 
 다음 여섯 파일이 실제로 존재하며 history CSV에서 생성됐다. 단, invalid run의 학습 곡선이다.
 
-![Keras 3-Seed Loss](results/figures/keras_3seed_loss.png)
+![Keras 3-Seed Loss](archive/invalid_run_01/figures/keras_3seed_loss.png)
 
-![Keras 3-Seed Accuracy](results/figures/keras_3seed_accuracy.png)
+![Keras 3-Seed Accuracy](archive/invalid_run_01/figures/keras_3seed_accuracy.png)
 
-![PyTorch 3-Seed Loss](results/figures/pytorch_3seed_loss.png)
+![PyTorch 3-Seed Loss](archive/invalid_run_01/figures/pytorch_3seed_loss.png)
 
-![PyTorch 3-Seed Accuracy](results/figures/pytorch_3seed_accuracy.png)
+![PyTorch 3-Seed Accuracy](archive/invalid_run_01/figures/pytorch_3seed_accuracy.png)
 
-![Validation Loss Comparison](results/figures/validation_loss_3seed_comparison.png)
+![Validation Loss Comparison](archive/invalid_run_01/figures/validation_loss_3seed_comparison.png)
 
-![Validation Accuracy Comparison](results/figures/validation_accuracy_3seed_comparison.png)
+![Validation Accuracy Comparison](archive/invalid_run_01/figures/validation_accuracy_3seed_comparison.png)
 
 ## 19. Hypothesis Evaluation
 
@@ -209,4 +244,4 @@ Keras는 Accuracy 35.81%, Macro F1 30.35%, best validation-loss epoch 7, 14 epoc
 
 ## 22. Conclusion
 
-기존 3-Seed 파일의 수치와 history는 정상적으로 읽히고 산술 요약도 정확하다. 하지만 Keras lifecycle bug로 실제 Batch Order가 Framework 간 일치하지 않아 Experiment 02의 OFAT 결과로는 무효다. 코드 수정과 lifecycle-aware sanity check는 완료했으며, 가설 및 Baseline 대비 효과 평가는 재학습 전까지 보류한다.
+Attempt 1의 수치와 history는 archive에 보존했지만 Keras lifecycle bug 때문에 OFAT 결과로는 무효다. 버그 수정, runtime order logging과 validation gate 구현은 완료했다. Attempt 2 재학습 전까지 Experiment 02의 가설 및 Baseline 대비 효과 평가는 Pending이다.

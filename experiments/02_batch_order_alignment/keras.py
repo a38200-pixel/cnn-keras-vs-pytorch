@@ -14,7 +14,14 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path = [entry for entry in sys.path if Path(entry or ".").resolve() != SCRIPT_DIR]
 sys.path.insert(0, str(ROOT))
 
-from common.batch_order import batch_groups, order_hash, prepare_batch_order_artifacts
+from common.batch_order import (
+    batch_groups,
+    initialize_runtime_order_log,
+    order_hash,
+    prepare_batch_order_artifacts,
+    record_runtime_order,
+    runtime_order_path,
+)
 from common.dataset_utils import CLASSES, build_split_manifest, find_dataset_root, is_physically_split, split_counts
 from common.environment_utils import print_tensorflow_environment, tensorflow_device_name
 from common.history_utils import save_history
@@ -35,6 +42,7 @@ RESULTS_DIR = Path(__file__).parent / "results"
 RESULTS = RESULTS_DIR / "keras_results.csv"
 HISTORY_DIR = RESULTS_DIR / "history"
 BATCH_ORDER_DIR = RESULTS_DIR / "batch_order"
+RUNTIME_ORDER_DIR = RESULTS_DIR / "runtime_order"
 
 
 # ============================================================
@@ -56,7 +64,14 @@ def load_baseline_image(path: str) -> np.ndarray:
     return tf.image.resize(image, (IMG_SIZE, IMG_SIZE), method="bilinear").numpy().astype(np.float32)
 
 
-def make_sequence(rows, training: bool, epoch_orders: np.ndarray | None = None):
+def make_sequence(
+    rows,
+    training: bool,
+    epoch_orders: np.ndarray | None = None,
+    runtime_seed: int | None = None,
+    runtime_canonical=None,
+    runtime_dataset_root: Path | None = None,
+):
     import tensorflow as tf
 
     if training and epoch_orders is None:
@@ -89,9 +104,20 @@ def make_sequence(rows, training: bool, epoch_orders: np.ndarray | None = None):
             # on_epoch_end(). Selecting the order here prevents that pre-fit
             # callback from shifting Keras one permutation ahead of PyTorch.
             if training:
+                if self.next_training_epoch >= len(epoch_orders):
+                    raise RuntimeError("Keras requested more epochs than the persisted schedule contains.")
                 self.epoch = self.next_training_epoch
                 self.indices = self._indices_for_epoch()
                 self.next_training_epoch += 1
+                if runtime_seed is not None:
+                    if runtime_canonical is None or runtime_dataset_root is None:
+                        raise RuntimeError("Runtime order logging requires canonical rows and dataset root.")
+                    record_runtime_order(
+                        RUNTIME_ORDER_DIR, "keras", runtime_seed,
+                        epoch=self.epoch + 1, schedule_index=self.epoch,
+                        order=self.indices, canonical=runtime_canonical,
+                        dataset_root=runtime_dataset_root, batch_size=BATCH_SIZE,
+                    )
 
         def on_epoch_end(self):
             # Intentionally do not advance here; Keras calls this once before
@@ -188,8 +214,22 @@ def run_batch_order_check(canonical, schedules) -> dict[int, str]:
         # Reproduce the Keras 3 fit lifecycle: pre-fit reset calls
         # on_epoch_end(), then the actual epoch calls on_epoch_begin().
         keras_sequence.on_epoch_end()
-        keras_sequence.on_epoch_begin()
-        keras_order = keras_sequence.indices
+        observed_schedule_indices = []
+        selected_hashes = {}
+        for expected_index in range(EPOCHS):
+            keras_sequence.on_epoch_begin()
+            observed_schedule_indices.append(keras_sequence.epoch)
+            keras_order_for_epoch = keras_sequence.indices
+            pytorch_order_for_epoch = [int(index) for index in schedules[seed][expected_index]]
+            assert keras_order_for_epoch == pytorch_order_for_epoch
+            assert order_hash(keras_order_for_epoch) == order_hash(pytorch_order_for_epoch)
+            if expected_index in {0, 1, EPOCHS - 1}:
+                selected_hashes[expected_index + 1] = order_hash(keras_order_for_epoch)
+            keras_sequence.on_epoch_end()
+        expected_schedule_indices = list(range(EPOCHS))
+        assert observed_schedule_indices == expected_schedule_indices
+
+        keras_order = [int(index) for index in schedules[seed][0]]
         pytorch_sampler_order = [int(index) for index in schedules[seed][0]]
         keras_batches = batch_groups(keras_order, BATCH_SIZE)
         pytorch_batches = batch_groups(pytorch_sampler_order, BATCH_SIZE)
@@ -208,6 +248,10 @@ def run_batch_order_check(canonical, schedules) -> dict[int, str]:
         print(f"Keras order hash : {keras_hash}")
         print(f"PyTorch order hash: {pytorch_hash}")
         print(f"Exact match: {exact}")
+        print(f"Expected lifecycle: {expected_schedule_indices}")
+        print(f"Observed lifecycle: {observed_schedule_indices}")
+        print(f"Lifecycle exact match: {observed_schedule_indices == expected_schedule_indices}")
+        print(f"Epoch 1/2/30 shared hashes: {selected_hashes}")
     assert all(
         not np.array_equal(first_epoch_orders[left], first_epoch_orders[right])
         for left in range(len(SEEDS)) for right in range(left + 1, len(SEEDS))
@@ -229,13 +273,13 @@ def result_contains_seed(seed: int) -> bool:
 def seed_is_complete(seed: int) -> bool:
     return result_contains_seed(seed) and (RESULTS_DIR / f"keras_seed{seed}.keras").exists() and (
         HISTORY_DIR / f"keras_seed{seed}_history.csv"
-    ).exists()
+    ).exists() and runtime_order_path(RUNTIME_ORDER_DIR, "keras", seed).exists()
 
 
 def seed_has_partial_artifacts(seed: int) -> bool:
     return result_contains_seed(seed) or (RESULTS_DIR / f"keras_seed{seed}.keras").exists() or (
         HISTORY_DIR / f"keras_seed{seed}_history.csv"
-    ).exists()
+    ).exists() or runtime_order_path(RUNTIME_ORDER_DIR, "keras", seed).exists()
 
 
 def print_training_header(seed: int) -> None:
@@ -258,7 +302,11 @@ def train_one_seed(seed: int) -> None:
     print_training_header(seed)
     print_tensorflow_environment(EXPERIMENT, seed)
     manifest, canonical, schedules = prepare_orders()
-    train = make_sequence(canonical, True, schedules[seed])
+    initialize_runtime_order_log(RUNTIME_ORDER_DIR, "keras", seed)
+    train = make_sequence(
+        canonical, True, schedules[seed], runtime_seed=seed,
+        runtime_canonical=canonical, runtime_dataset_root=find_dataset_root(),
+    )
     val = make_sequence(manifest["val"], False)
     test = make_sequence(manifest["test"], False)
     model = build_model(seed)
