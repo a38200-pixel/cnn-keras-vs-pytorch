@@ -146,7 +146,7 @@ Keras는 `padding="same"`, PyTorch는 `padding=1`을 사용한다.
 | DATA | Dataset physical split | 완료 | - | 70/15/15 검증 완료 |
 | 00 | Baseline | 완료 | 완료 | 3-Seed 결과 분석 완료 |
 | 01 | Input Tensor | 완료, Input equality/GPU sanity 통과 | 완료 | Baseline 비교 및 history 분석 완료 |
-| 02 | Batch Order | 대기 | 대기 | 대기 |
+| 02 | Batch Order | lifecycle bug 수정 완료 | 완료(기존 실행 invalid) | OFAT audit 완료, 재학습 필요 |
 | 03 | Augmentation | 대기 | 대기 | 대기 |
 | 04 | Initial Weight | 대기 | 대기 | 대기 |
 | 05 | Output / Loss | 대기 | 대기 | 대기 |
@@ -174,7 +174,7 @@ Keras는 `padding="same"`, PyTorch는 `padding=1`을 사용한다.
 |---|---|---:|---:|---:|---:|
 | Baseline | None | 45.84% | 50.08% | 4.23%p | 0 |
 | Input | Input Tensor | 46.46% | 48.66% | 2.20%p | **2.03%p (48.02%)** |
-| Batch | Batch Order | - | - | - | - |
+| Batch† | Batch Order | 39.86%† | 48.05%† | 8.18%p† | **무효: 실제 order mismatch, 재학습 필요** |
 | Augmentation | Augmentation | - | - | - | - |
 | Weight | Initial Weight | - | - | - | - |
 | Loss | Output / Loss | - | - | - | - |
@@ -182,6 +182,8 @@ Keras는 `padding="same"`, PyTorch는 `padding=1`을 사용한다.
 | BatchNorm | BatchNorm | - | - | - | - |
 | Callback | ES / LR Scheduler | - | - | - | - |
 <!-- ABLATION_RESULTS_END -->
+
+† Experiment 02의 숫자는 기존 CSV의 기술적 기록이다. Keras 3가 첫 epoch 전에 `Sequence.on_epoch_end()`를 호출해 Keras와 PyTorch가 서로 다른 epoch permutation을 사용한 사실이 사후 audit에서 확인됐다. 따라서 이 행은 OFAT evidence와 H2 평가에서 제외하며, 수정 코드로 재학습하기 전까지 Baseline 대비 효과로 해석하지 않는다. Experiment 01과 02는 여전히 서로 독립적인 Baseline branch다.
 
 ### 15. Layer-by-Layer Results
 
@@ -194,6 +196,8 @@ Keras는 `padding="same"`, PyTorch는 `padding=1`을 사용한다.
 Baseline 3-Seed에서 같은 방향의 Framework Gap이 반복됐다. Accuracy 평균 Gap은 PyTorch 기준 +3.98%p, Macro F1 평균 Gap은 +4.23%p였으며, Keras의 Seed 변동성이 더 컸다. 이는 추가 원인 분석을 수행할 근거지만 framework 자체의 인과 효과를 확정하지 않는다.
 
 Experiment 01에서 augmentation 이전 deterministic input preprocessing을 동일화한 결과, Macro F1 Gap은 4.23%p에서 2.20%p로 48.02%, Accuracy Gap은 3.98%p에서 2.18%p로 45.25% 감소했다. 그러나 Keras Macro F1이 +0.61%p 상승한 것과 동시에 PyTorch Macro F1이 -1.42%p 하락했고, PyTorch의 Macro F1 표준편차가 0.23%p에서 3.72%p로 증가했다. Seed 42에서는 Keras가 PyTorch를 역전했다. 따라서 Input Tensor 처리는 Gap에 영향을 주는 요인이지만 단독 원인으로 보기는 어렵다. 상세 결과는 [Experiment 01 README](experiments/01_input_tensor_alignment/README.md)에 정리했다.
+
+Experiment 02의 기존 실행에서는 원시 Macro F1 Gap 8.18%p가 기록됐지만 유효한 Batch Order Alignment 결과가 아니다. Keras data adapter의 pre-fit lifecycle 때문에 Keras는 schedule index 1부터, PyTorch는 index 0부터 학습한 것으로 확인됐다. 다른 Baseline 조건의 의미 있는 변경은 발견되지 않았으며, lifecycle bug를 수정하고 양쪽 `RUN_TRAINING=False`로 되돌렸다. 상세 audit와 invalid run 기록은 [Experiment 02 README](experiments/02_batch_order_alignment/README.md)에 정리했다.
 
 - Seed마다 우위가 바뀌면 framework 효과보다 stochastic variation이 큰 것으로 보고 H0를 기각하지 않는다.
 - 세 Seed에서 같은 방향의 gap이 반복되면 H1을 검토할 재현성 근거로 사용한다.

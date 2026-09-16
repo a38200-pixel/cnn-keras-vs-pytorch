@@ -1,0 +1,106 @@
+{
+  "ofat_audit": {
+    "status": "invalid_retraining_required",
+    "valid_for_batch_order_effect": false,
+    "reason": "Keras 3 pre-fit reset invoked Sequence.on_epoch_end(), so Keras started at schedule index 1 while PyTorch started at index 0.",
+    "numbers_are_descriptive_only": true
+  },
+  "comparison_reference": "00_baseline_final_cnn_3seed",
+  "gap_definition": "PyTorch - Keras",
+  "baseline_00": {
+    "keras": {
+      "accuracy_mean": 0.47193221364805565,
+      "accuracy_std": 0.02179477389018709,
+      "macro_f1_mean": 0.4584489064756623,
+      "macro_f1_std": 0.02447342597702371,
+      "test_loss_mean": 1.3668922583262126
+    },
+    "pytorch": {
+      "accuracy_mean": 0.511726433651082,
+      "accuracy_std": 0.0011423565494432966,
+      "macro_f1_mean": 0.5007715209955931,
+      "macro_f1_std": 0.0022546918164197682,
+      "test_loss_mean": 1.2733298723555888
+    },
+    "accuracy_gap": {
+      "definition": "PyTorch - Keras",
+      "paired_difference": {
+        "42": 0.01815705855651395,
+        "123": 0.03812982296867912,
+        "2026": 0.06309577848388565
+      },
+      "signed_gap": 0.03979422000302624,
+      "absolute_gap": 0.03979422000302624
+    },
+    "macro_f1_gap": {
+      "definition": "PyTorch - Keras",
+      "paired_difference": {
+        "42": 0.018618394991111953,
+        "123": 0.04497350824331586,
+        "2026": 0.06337594032536437
+      },
+      "signed_gap": 0.042322614519930725,
+      "absolute_gap": 0.042322614519930725
+    }
+  },
+  "experiment_02": {
+    "keras": {
+      "accuracy_mean": 0.42941443486155245,
+      "accuracy_std": 0.06356429376673672,
+      "macro_f1_mean": 0.39864183197130365,
+      "macro_f1_std": 0.08347162583985639,
+      "test_loss_mean": 1.458406885464986
+    },
+    "pytorch": {
+      "accuracy_mean": 0.49099712513239524,
+      "accuracy_std": 0.03122648973862874,
+      "macro_f1_mean": 0.48046491887353193,
+      "macro_f1_std": 0.043126940135458224,
+      "test_loss_mean": 1.3140021967877056
+    },
+    "accuracy_gap": {
+      "definition": "PyTorch - Keras",
+      "paired_difference": {
+        "42": 0.05038583749432596,
+        "123": 0.03631411711302773,
+        "2026": 0.09804811620517473
+      },
+      "signed_gap": 0.06158269027084281,
+      "absolute_gap": 0.06158269027084281
+    },
+    "macro_f1_gap": {
+      "definition": "PyTorch - Keras",
+      "paired_difference": {
+        "42": 0.05766241055269,
+        "123": 0.05810120066217017,
+        "2026": 0.12970564949182467
+      },
+      "signed_gap": 0.08182308690222828,
+      "absolute_gap": 0.08182308690222828
+    }
+  },
+  "gap_effect": {
+    "accuracy": {
+      "gap_reduction": -0.021788470267816572,
+      "gap_reduction_rate": -0.5475285171102643
+    },
+    "macro_f1": {
+      "gap_reduction": -0.039500472382297556,
+      "gap_reduction_rate": -0.9333183412781799
+    }
+  },
+  "seed_stability_std_change": {
+    "keras_accuracy": 0.04176951987654963,
+    "keras_macro_f1": 0.05899819986283268,
+    "pytorch_accuracy": 0.030084133189185444,
+    "pytorch_macro_f1": 0.040872248319038455
+  },
+  "figures": [
+    "results/figures/keras_3seed_loss.png",
+    "results/figures/keras_3seed_accuracy.png",
+    "results/figures/pytorch_3seed_loss.png",
+    "results/figures/pytorch_3seed_accuracy.png",
+    "results/figures/validation_loss_3seed_comparison.png",
+    "results/figures/validation_accuracy_3seed_comparison.png"
+  ]
+}
