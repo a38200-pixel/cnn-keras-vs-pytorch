@@ -1,0 +1,56 @@
+{
+  "status": "VALID",
+  "all_common_epoch_hashes_match": true,
+  "details": {
+    "42": {
+      "keras": {
+        "epochs_recorded": 27,
+        "first_hash": "9a886b206e6612468b009a85ea9a7dacab036a0403d5dffca64b3fc72f42ffc2",
+        "last_hash": "ea0a26415c9841d83626f429af5bae27b9c3921ecf09926c7b1b289ac3688c0d",
+        "self_schedule_match": true
+      },
+      "pytorch": {
+        "epochs_recorded": 30,
+        "first_hash": "9a886b206e6612468b009a85ea9a7dacab036a0403d5dffca64b3fc72f42ffc2",
+        "last_hash": "3b381a8d4988cec7514620603d5d410ee27da252f73426de5e8c8b6bb8d87998",
+        "self_schedule_match": true
+      },
+      "common_epochs_compared": 27,
+      "framework_hash_exact_match": true
+    },
+    "123": {
+      "keras": {
+        "epochs_recorded": 30,
+        "first_hash": "d0f508343f1049553be6f5799d05221b4666cf5b0ed6d8b8ec8a2ba30093abd1",
+        "last_hash": "1679a700d0e23f774404995f33f0867472db194d64470740b410fc6ef8c1ee00",
+        "self_schedule_match": true
+      },
+      "pytorch": {
+        "epochs_recorded": 30,
+        "first_hash": "d0f508343f1049553be6f5799d05221b4666cf5b0ed6d8b8ec8a2ba30093abd1",
+        "last_hash": "1679a700d0e23f774404995f33f0867472db194d64470740b410fc6ef8c1ee00",
+        "self_schedule_match": true
+      },
+      "common_epochs_compared": 30,
+      "framework_hash_exact_match": true
+    },
+    "2026": {
+      "keras": {
+        "epochs_recorded": 25,
+        "first_hash": "c11e142e8c2a9d2f7a50da5d0b1ea2a3888d093e043a724fe119a6d7a4643855",
+        "last_hash": "3d74f13a581080332824ca4ebcdf8bb1431168d2a294a09fb814b23e9c5bafd7",
+        "self_schedule_match": true
+      },
+      "pytorch": {
+        "epochs_recorded": 21,
+        "first_hash": "c11e142e8c2a9d2f7a50da5d0b1ea2a3888d093e043a724fe119a6d7a4643855",
+        "last_hash": "d6b3918b562b80b4c791cdd1ab98ec3559c6f408d0eeea77f0679862ed49ccad",
+        "self_schedule_match": true
+      },
+      "common_epochs_compared": 21,
+      "framework_hash_exact_match": true
+    }
+  },
+  "missing": [],
+  "errors": []
+}
