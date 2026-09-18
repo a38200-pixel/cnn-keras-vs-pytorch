@@ -117,7 +117,7 @@ Keras는 `padding="same"`, PyTorch는 `padding=1`을 사용한다.
 
 본 연구에서는 Keras와 PyTorch 사이의 구현 차이를 하나씩 독립적으로 동일화하는 **OFAT(One-Factor-at-a-Time) 기반 ablation-style controlled experiment**를 수행한다. 이는 model layer 제거 실험이 아니라 implementation factor alignment 연구다. 모든 성능 실험은 Keras 3회 + PyTorch 3회이며 주 지표는 Macro F1이다.
 
-`Signed Gap_seed = PyTorch metric_seed − Keras metric_seed`로 정의하며 Absolute Gap은 그 절댓값이다. 각 branch의 Gap Reduction은 `baseline absolute gap − current absolute gap`으로 계산한다. 양수는 Gap 감소, 0 근처는 영향이 작음, 음수는 Gap 증가를 뜻한다. Baseline gap이 거의 0이면 reduction rate는 N/A다.
+Seed별 Gap은 `PyTorch metric_seed − Keras metric_seed`로 정의한다. `Signed Mean Gap = mean(Gap_seed)`은 평균 우위 방향을, `Mean Absolute Paired Gap = mean(abs(Gap_seed))`은 Seed별 차이의 평균 크기를 나타낸다. 각 지표의 Gap Reduction은 `baseline gap − current gap`으로 계산한다. 양수는 Gap 감소, 0 근처는 영향이 작음, 음수는 Gap 증가를 뜻하며 Baseline gap이 거의 0이면 reduction rate는 N/A다.
 
 ### 10. 왜 누적 통제를 사용하지 않았는가?
 
@@ -146,7 +146,7 @@ Keras는 `padding="same"`, PyTorch는 `padding=1`을 사용한다.
 | DATA | Dataset physical split | 완료 | - | 70/15/15 검증 완료 |
 | 00 | Baseline | 완료 | 완료 | 3-Seed 결과 분석 완료 |
 | 01 | Input Tensor | 완료, Input equality/GPU sanity 통과 | 완료 | Baseline 비교 및 history 분석 완료 |
-| 02 | Batch Order | Attempt 1 Invalid / Audit 완료 / Bug Fix 완료 | Attempt 2 대기 | 최종 분석 Pending |
+| 02 | Batch Order | Attempt 1 Invalid / Bug Fix 완료 | Attempt 2 VALID / 3-Seed 완료 | Runtime 검증 및 Baseline 분석 완료 |
 | 03 | Augmentation | 대기 | 대기 | 대기 |
 | 04 | Initial Weight | 대기 | 대기 | 대기 |
 | 05 | Output / Loss | 대기 | 대기 | 대기 |
@@ -170,11 +170,11 @@ Keras는 `padding="same"`, PyTorch는 `padding=1`을 사용한다.
 ### 14. Single-Factor Ablation Results
 
 <!-- ABLATION_RESULTS_START -->
-| Experiment | Aligned Variable | Keras F1 | PyTorch F1 | Abs. Gap | Gap Reduction vs Baseline |
+| Experiment | Aligned Variable | Keras F1 | PyTorch F1 | Signed Mean Gap | Mean Absolute Paired Gap |
 |---|---|---:|---:|---:|---:|
-| Baseline | None | 45.84% | 50.08% | 4.23%p | 0 |
-| Input | Input Tensor | 46.46% | 48.66% | 2.20%p | **2.03%p (48.02%)** |
-| Batch | Batch Order | Pending | Pending | Pending | Pending |
+| Baseline | None | 45.84% | 50.08% | 4.23%p | 4.23%p |
+| Input | Input Tensor | 46.46% | 48.66% | 2.20%p | 3.91%p |
+| Batch | Batch Order | 46.73% | 48.05% | **1.32%p** | **3.17%p** |
 | Augmentation | Augmentation | - | - | - | - |
 | Weight | Initial Weight | - | - | - | - |
 | Loss | Output / Loss | - | - | - | - |
@@ -183,7 +183,9 @@ Keras는 `padding="same"`, PyTorch는 `padding=1`을 사용한다.
 | Callback | ES / LR Scheduler | - | - | - | - |
 <!-- ABLATION_RESULTS_END -->
 
-Experiment 02 Attempt 1은 Keras 3가 첫 epoch 전에 `Sequence.on_epoch_end()`를 호출해 Keras와 PyTorch가 서로 다른 epoch permutation을 사용한 사실이 사후 audit에서 확인되어 archive로 이동했다. 해당 수치는 OFAT evidence와 H2 평가에서 제외한다. lifecycle bug와 runtime-order validation은 수정됐으며 Attempt 2 재학습은 Pending이다. Experiment 01과 02는 서로 독립적인 Baseline branch다.
+Signed Mean Gap은 `mean(PyTorch - Keras)`, Mean Absolute Paired Gap은 `mean(abs(PyTorch - Keras))`다. Seed별 우위 방향이 바뀌면 signed 값이 상쇄될 수 있으므로 두 값을 함께 본다. Experiment 01과 02는 서로 독립적인 Baseline branch다.
+
+Experiment 02 Attempt 1은 실제 order mismatch로 archive에 보존하고 공식 표에서 제외했다. Bug Fix 후 Attempt 2는 runtime에서 공통 수행한 모든 epoch의 전체 order hash가 일치해 `VALID` 판정을 받았으며, 위 Batch 행은 Attempt 2만 사용한다.
 
 ### 15. Layer-by-Layer Results
 
@@ -197,7 +199,7 @@ Baseline 3-Seed에서 같은 방향의 Framework Gap이 반복됐다. Accuracy �
 
 Experiment 01에서 augmentation 이전 deterministic input preprocessing을 동일화한 결과, Macro F1 Gap은 4.23%p에서 2.20%p로 48.02%, Accuracy Gap은 3.98%p에서 2.18%p로 45.25% 감소했다. 그러나 Keras Macro F1이 +0.61%p 상승한 것과 동시에 PyTorch Macro F1이 -1.42%p 하락했고, PyTorch의 Macro F1 표준편차가 0.23%p에서 3.72%p로 증가했다. Seed 42에서는 Keras가 PyTorch를 역전했다. 따라서 Input Tensor 처리는 Gap에 영향을 주는 요인이지만 단독 원인으로 보기는 어렵다. 상세 결과는 [Experiment 01 README](experiments/01_input_tensor_alignment/README.md)에 정리했다.
 
-Experiment 02의 기존 실행에서는 원시 Macro F1 Gap 8.18%p가 기록됐지만 유효한 Batch Order Alignment 결과가 아니다. Keras data adapter의 pre-fit lifecycle 때문에 Keras는 schedule index 1부터, PyTorch는 index 0부터 학습한 것으로 확인됐다. 다른 Baseline 조건의 의미 있는 변경은 발견되지 않았으며, lifecycle bug를 수정하고 양쪽 `RUN_TRAINING=False`로 되돌렸다. 상세 audit와 invalid run 기록은 [Experiment 02 README](experiments/02_batch_order_alignment/README.md)에 정리했다.
+Experiment 02 Attempt 1은 Keras lifecycle bug로 무효 처리하고 archive에만 보존했다. 수정 후 Attempt 2는 runtime order validation을 통과했다. 공식 결과에서 Macro F1 Signed Mean Gap은 4.23%p에서 1.32%p로 68.87% 감소했고, Mean Absolute Paired Gap은 4.23%p에서 3.17%p로 25.18% 감소했다. Baseline의 세 Seed 모두 PyTorch 우위였던 방향도 Keras/PyTorch/Keras로 바뀌었다. 다만 Seed 123의 Macro F1 Gap은 +6.73%p였고 양쪽 Seed 변동성이 증가했으므로 Batch Order를 단독 원인으로 보지 않는다. 상세 결과는 [Experiment 02 README](experiments/02_batch_order_alignment/README.md)에 정리했다.
 
 - Seed마다 우위가 바뀌면 framework 효과보다 stochastic variation이 큰 것으로 보고 H0를 기각하지 않는다.
 - 세 Seed에서 같은 방향의 gap이 반복되면 H1을 검토할 재현성 근거로 사용한다.
@@ -212,7 +214,7 @@ Experiment 02의 기존 실행에서는 원시 Macro F1 Gap 8.18%p가 기록됐�
 |---|---|---|
 | H0 | 근거 약화 | 3 Seed 모두 같은 방향의 Accuracy/Macro F1 Gap이 관찰됨. 3 Seed만으로 통계적 기각을 주장하지 않음 |
 | H1 | 추가 분석 근거 확보 | 반복 가능한 Framework Gap이 관찰되어 01~08 원인 분석을 진행함 |
-| H2 | 부분 지지 | Input Alignment 후 Macro F1 Gap 48.02%, Accuracy Gap 45.25% 감소. 다만 PyTorch 성능 하락과 Seed 변동 증가가 함께 관찰되어 단독 원인으로 확정하지 않음 |
+| H2 | 부분 지지 | Input과 Batch Order 독립 branch 모두 Baseline 대비 Gap 감소 방향. Batch Order는 Macro F1 Signed Mean Gap 68.87%, Mean Absolute Paired Gap 25.18% 감소. Seed별 불일치와 분산 증가로 단독 원인으로 확정하지 않음 |
 | H3 | Pending | - |
 <!-- HYPOTHESIS_RESULTS_END -->
 

@@ -80,6 +80,8 @@
         "123": 0.03812982296867912,
         "2026": 0.06309577848388565
       },
+      "signed_mean_gap": 0.03979422000302624,
+      "mean_absolute_paired_gap": 0.03979422000302624,
       "signed_gap": 0.03979422000302624,
       "absolute_gap": 0.03979422000302624
     },
@@ -90,6 +92,8 @@
         "123": 0.04497350824331586,
         "2026": 0.06337594032536437
       },
+      "signed_mean_gap": 0.042322614519930725,
+      "mean_absolute_paired_gap": 0.042322614519930725,
       "signed_gap": 0.042322614519930725,
       "absolute_gap": 0.042322614519930725
     }
@@ -116,6 +120,8 @@
         "123": 0.045846572855197554,
         "2026": 0.0018157058556513284
       },
+      "signed_mean_gap": 0.013617793917385398,
+      "mean_absolute_paired_gap": 0.018157058556513856,
       "signed_gap": 0.013617793917385398,
       "absolute_gap": 0.013617793917385398
     },
@@ -126,6 +132,8 @@
         "123": 0.06726038392469935,
         "2026": -0.012160163736087803
       },
+      "signed_mean_gap": 0.01317586153124306,
+      "mean_absolute_paired_gap": 0.03166439441855651,
       "signed_gap": 0.01317586153124306,
       "absolute_gap": 0.01317586153124306
     }
@@ -133,11 +141,19 @@
   "gap_effect": {
     "accuracy": {
       "gap_reduction": 0.026176426085640837,
-      "gap_reduction_rate": 0.6577946768060837
+      "gap_reduction_rate": 0.6577946768060837,
+      "signed_gap_reduction": 0.026176426085640837,
+      "signed_gap_reduction_rate": 0.6577946768060837,
+      "absolute_paired_gap_reduction": 0.02163716144651238,
+      "absolute_paired_gap_reduction_rate": 0.5437262357414453
     },
     "macro_f1": {
       "gap_reduction": 0.029146752988687664,
-      "gap_reduction_rate": 0.6886803501934354
+      "gap_reduction_rate": 0.6886803501934354,
+      "signed_gap_reduction": 0.029146752988687664,
+      "signed_gap_reduction_rate": 0.6886803501934354,
+      "absolute_paired_gap_reduction": 0.010658220101374218,
+      "absolute_paired_gap_reduction_rate": 0.2518327429028518
     }
   },
   "seed_stability_std_change": {

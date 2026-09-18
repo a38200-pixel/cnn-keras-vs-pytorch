@@ -182,10 +182,15 @@ def framework_summary(data: pd.DataFrame) -> dict[str, float]:
 def metric_gap(keras: pd.DataFrame, torch: pd.DataFrame, metric: str) -> dict[str, object]:
     paired = torch.set_index("seed")[metric] - keras.set_index("seed")[metric]
     signed = float(paired.mean())
+    mean_absolute = float(paired.abs().mean())
     return {
         "definition": "PyTorch - Keras",
         "paired_difference": {str(int(seed)): float(value) for seed, value in paired.items()},
+        "signed_mean_gap": signed,
+        "mean_absolute_paired_gap": mean_absolute,
         "signed_gap": signed,
+        # Backward-compatible legacy key: absolute value of the signed mean,
+        # not the mean of the paired absolute differences.
         "absolute_gap": abs(signed),
     }
 
@@ -195,6 +200,26 @@ def gap_effect(current: float, baseline: float) -> dict[str, float | None]:
     return {
         "gap_reduction": reduction,
         "gap_reduction_rate": None if abs(baseline) < 1e-12 else reduction / baseline,
+    }
+
+
+def expanded_gap_effect(current: dict[str, object], baseline: dict[str, object]) -> dict[str, float | None]:
+    """Keep legacy reduction while separating signed-mean and paired-absolute effects."""
+    legacy = gap_effect(float(current["absolute_gap"]), float(baseline["absolute_gap"]))
+    signed_reduction = abs(float(baseline["signed_mean_gap"])) - abs(
+        float(current["signed_mean_gap"])
+    )
+    paired_reduction = float(baseline["mean_absolute_paired_gap"]) - float(
+        current["mean_absolute_paired_gap"]
+    )
+    baseline_signed = abs(float(baseline["signed_mean_gap"]))
+    baseline_paired = float(baseline["mean_absolute_paired_gap"])
+    return {
+        **legacy,
+        "signed_gap_reduction": signed_reduction,
+        "signed_gap_reduction_rate": None if baseline_signed < 1e-12 else signed_reduction / baseline_signed,
+        "absolute_paired_gap_reduction": paired_reduction,
+        "absolute_paired_gap_reduction_rate": None if baseline_paired < 1e-12 else paired_reduction / baseline_paired,
     }
 
 
@@ -259,10 +284,15 @@ def markdown_preview(summary: dict[str, object]) -> str:
     return f"""
 ## Experiment 02 Result Preview
 
-| Metric | Baseline Signed Gap | Experiment 02 Signed Gap | Absolute Gap Reduction |
+| Metric | Baseline Signed Mean Gap | Experiment 02 Signed Mean Gap | Signed-direction Gap Reduction |
 |---|---:|---:|---:|
 | Accuracy | {baseline['accuracy_gap']['signed_gap'] * 100:+.2f}%p | {current['accuracy_gap']['signed_gap'] * 100:+.2f}%p | {effect['accuracy']['gap_reduction'] * 100:+.2f}%p |
 | Macro F1 | {baseline['macro_f1_gap']['signed_gap'] * 100:+.2f}%p | {current['macro_f1_gap']['signed_gap'] * 100:+.2f}%p | {effect['macro_f1']['gap_reduction'] * 100:+.2f}%p |
+
+| Metric | Baseline Mean Absolute Paired Gap | Experiment 02 Mean Absolute Paired Gap | Reduction |
+|---|---:|---:|---:|
+| Accuracy | {baseline['accuracy_gap']['mean_absolute_paired_gap'] * 100:.2f}%p | {current['accuracy_gap']['mean_absolute_paired_gap'] * 100:.2f}%p | {effect['accuracy']['absolute_paired_gap_reduction'] * 100:+.2f}%p |
+| Macro F1 | {baseline['macro_f1_gap']['mean_absolute_paired_gap'] * 100:.2f}%p | {current['macro_f1_gap']['mean_absolute_paired_gap'] * 100:.2f}%p | {effect['macro_f1']['absolute_paired_gap_reduction'] * 100:+.2f}%p |
 
 Signed Gap = PyTorch - Keras. Experiment 02 is compared directly with Baseline 00, not Experiment 01.
 """.strip()
@@ -344,8 +374,8 @@ def main() -> None:
             "accuracy_gap": current_acc, "macro_f1_gap": current_f1,
         },
         "gap_effect": {
-            "accuracy": gap_effect(current_acc["absolute_gap"], base_acc["absolute_gap"]),
-            "macro_f1": gap_effect(current_f1["absolute_gap"], base_f1["absolute_gap"]),
+            "accuracy": expanded_gap_effect(current_acc, base_acc),
+            "macro_f1": expanded_gap_effect(current_f1, base_f1),
         },
         "seed_stability_std_change": {
             "keras_accuracy": float(keras["test_accuracy"].std(ddof=1) - baseline_keras["test_accuracy"].std(ddof=1)),

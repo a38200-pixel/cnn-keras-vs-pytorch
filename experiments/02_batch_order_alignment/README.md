@@ -1,247 +1,228 @@
 # Experiment 02 - Batch Order Alignment
 
-## Attempt 1 - Invalid
+## 1. 목적
 
-기존 3-Seed 실행은 Keras 3의 pre-fit `on_epoch_end()` 호출 때문에 Keras permutation이 PyTorch보다 한 칸 앞서 사용됐다. 실제 training order가 일치하지 않았으므로 OFAT 분석에서 제외했다.
+Keras와 PyTorch에 동일한 epoch별 training sample permutation과 mini-batch grouping을 제공했을 때 Framework Gap과 Seed Stability가 어떻게 달라지는지 검증한다.
 
-기존 CSV, history, figure, model과 schedule은 삭제하지 않고 다음 위치에 보존했다.
+## 2. OFAT Design
 
-```text
-archive/invalid_run_01/
-```
+Experiment 02는 **00 Final CNN Baseline + Training Batch Order only**인 독립 OFAT branch다. Experiment 01 Input Tensor Alignment를 누적하지 않았다. 비교 기준은 항상 Experiment 00이다.
 
-아래 Attempt 1 수치와 곡선은 technical debugging record일 뿐 Batch Order Alignment의 효과나 가설 판정에 사용하지 않는다.
+Signed Gap은 `PyTorch - Keras`로 정의한다. 양수는 PyTorch, 음수는 Keras가 해당 지표에서 높다는 뜻이다.
 
-## Bug Fix
-
-- Order advance를 Keras 내부의 추가 호출 가능성이 있는 `on_epoch_end()`에서 제거했다.
-- 실제 training `on_epoch_begin()`에서 epoch N → schedule index N-1을 명시적으로 적용한다.
-- Seed별 30-epoch lifecycle simulation에서 observed index `0..29`를 검증한다.
-- 실제 학습 시 Framework/Seed/Epoch별 전체 order SHA-256과 첫 3개 batch preview를 `results/runtime_order/`에 기록한다.
-- `compare.py`는 공통 실행 epoch의 Keras/PyTorch hash, 각 Framework의 schedule index/hash와 history epoch 수가 모두 맞아야 성능 분석을 수행한다.
-
-## Attempt 2 - Pending
-
-> **3-Seed retraining pending.** Active results는 초기화됐고 수정 코드의 lifecycle/order simulation과 GPU single-forward sanity만 수행했다. `RUN_TRAINING = False`이며 실제 재학습은 아직 시작하지 않았다.
-
-## 1. Experiment Purpose
-
-동일한 training sample order와 mini-batch composition이 Keras-PyTorch Framework Gap과 Seed Stability에 미치는 영향을 검증하려는 실험이다.
-
-## 2. Why This Experiment?
-
-같은 dataset과 model이라도 sample 순서, mini-batch 조합, gradient update 순서가 달라지면 optimization trajectory가 달라질 수 있다. 따라서 Framework 외부에서 만든 동일 permutation을 양쪽에 제공해 Batch Order의 단독 개입 효과를 측정하고자 했다.
-
-## 3. Baseline
-
-직접 비교 기준은 Experiment 00 Final CNN의 실제 CSV다.
-
-| Metric | Keras | PyTorch | Signed Gap |
+| Baseline metric | Keras | PyTorch | Signed Mean Gap |
 |---|---:|---:|---:|
-| Test Accuracy | 47.19 ± 2.18% | 51.17 ± 0.11% | +3.98%p |
+| Accuracy | 47.19 ± 2.18% | 51.17 ± 0.11% | +3.98%p |
 | Macro F1 | 45.84 ± 2.45% | 50.08 ± 0.23% | +4.23%p |
-| Test Loss | 1.3669 | 1.2733 | -0.0936 |
+| Test Loss | 1.3669 ± 0.0404 | 1.2733 ± 0.0181 | -0.0936 |
 
-Signed Gap은 `PyTorch - Keras`다.
+환경은 Python 3.10.3, TensorFlow/Keras 2.18.1 + Metal, PyTorch 2.14.0 + MPS, Apple M1 Pro다. Seeds는 42, 123, 2026이다.
 
-## 4. Hypotheses
+## 3. Attempt 1 - Invalid
 
-- **H02-0:** Training Batch Order 차이는 Framework Gap의 주요 원인이 아니며, 동일화 후에도 Baseline과 비슷한 Gap이 유지된다.
-- **H02-1:** Framework별 shuffle/mini-batch sequence 차이가 Gap에 영향을 준다면 동일한 order와 grouping 사용 후 Accuracy 또는 Macro F1 Gap이 감소한다.
-- 추가 관찰: Batch Order가 Seed Sensitivity에 영향을 준다면 3-Seed 표준편차도 Baseline에서 달라질 수 있다.
+**상태: INVALID / EXCLUDED**
 
-## 5. OFAT Design
+첫 실행은 Keras 3 lifecycle 문제로 Keras epoch 1이 schedule index 1, PyTorch epoch 1이 schedule index 0을 사용했다. 실제 Batch Order가 일치하지 않았으므로 결과와 Gap 8.18%p는 공식 Experiment 02 결과에서 제외한다.
 
-의도한 설계는 **00 Baseline + Training Batch Order only**다. Experiment 01 Input Tensor Alignment를 누적하거나 공통 input loader를 재사용하지 않았다. Experiment 01과 02는 독립 branch다.
+기존 CSV, history, figure, model과 조건 파일은 삭제하지 않고 [archive/invalid_run_01](archive/invalid_run_01/README.md)에 technical debugging record로 보존했다.
 
-그러나 사후 audit에서 실제 Keras 학습 order가 의도한 schedule과 어긋난 것이 확인돼 기존 실행은 유효한 OFAT 결과가 아니다.
+## 4. Bug Cause
+
+Keras 3 `fit()`은 첫 training epoch 전에 data adapter를 reset하며, 이 과정에서 `Sequence.on_epoch_end()`를 호출한다. 기존 코드는 이 메서드에서 다음 permutation으로 이동했기 때문에 첫 epoch 전에 schedule이 한 칸 앞당겨졌다.
+
+수정 사항:
+
+- `on_epoch_end()`에서는 order를 변경하지 않는다.
+- 실제 `on_epoch_begin()`에서 epoch N → schedule index N-1을 적용한다.
+- Runtime 전체 order hash와 첫 3개 batch preview를 기록한다.
+- `compare.py`는 runtime validation을 통과한 경우에만 성능 분석을 생성한다.
+
+## 5. Attempt 2 - Runtime Validation
+
+**상태: VALID / OFFICIAL RESULT**
+
+`comparison_summary.json`과 `runtime_order_validation.json`에서 다음 조건이 모두 통과했다.
+
+- `experiment_validity = VALID`
+- `runtime_order_validation.status = VALID`
+- `all_common_epoch_hashes_match = true`
+- 각 Framework의 `self_schedule_match = true`
+- Runtime trace epoch 수와 history epoch 수 일치
+
+| Seed | Keras epochs | PyTorch epochs | Common epochs compared | Common hash exact match |
+|---:|---:|---:|---:|---|
+| 42 | 27 | 30 | 27 | `True` |
+| 123 | 30 | 30 | 30 | `True` |
+| 2026 | 25 | 21 | 21 | `True` |
+
+사전 생성된 permutation만 같았던 것이 아니라, 실제 training runtime에서 양쪽이 공통으로 수행한 모든 epoch의 전체 sample-order SHA-256이 일치했다. EarlyStopping 후 한쪽에만 존재하는 epoch도 해당 Framework의 persisted schedule과 일치했다. 따라서 Attempt 2는 Batch Order Alignment OFAT 결과로 사용한다.
 
 ## 6. Changed Variable
 
-의도한 변경 변수는 다음 Batch Order 요소뿐이다.
+변경 변수는 Training Batch Order뿐이다.
 
 - Epoch별 training sample permutation
-- Batch sample composition과 내부 순서
+- 각 batch의 sample 구성
+- Batch 내부 sample 순서
 - 마지막 partial batch 처리
 
 ## 7. Unchanged Variables
 
-코드 비교에서는 아래 조건이 00 Baseline과 동일했다.
-
-- Keras: TensorFlow decode, bilinear resize, model 내부 `Rescaling(1/255)`
-- PyTorch: PIL RGB, torchvision `Resize`, `ToTensor`
-- Keras `RandomFlip`/`RandomRotation`, PyTorch `RandomHorizontalFlip`/`RandomRotation`
-- Framework별 default weight initialization
-- Keras Softmax + probability loss, PyTorch logits + CrossEntropy
-- Adam: lr/beta/epsilon/weight decay/amsgrad
+- Framework별 Baseline input decoding, resize와 scaling
+- Keras/PyTorch Baseline augmentation와 RNG semantics
+- Framework별 default initial weight
+- Keras Softmax/loss와 PyTorch logits/CrossEntropy
+- Adam learning rate, beta, epsilon, weight decay, amsgrad
 - Conv/BatchNorm/ReLU/MaxPool/GAP/Dense 구조와 BN 설정
-- EarlyStopping 및 ReduceLROnPlateau 설정과 Framework-specific timing
-- Validation/Test preprocessing, batch size 32, sample count
+- EarlyStopping, ReduceLROnPlateau와 Framework-specific timing
+- Validation/Test pipeline, batch size 32
 
-History recorder, progress display와 `clear_session()`은 기록/격리를 위한 변경이며 학습 목적 변수는 아니다.
+Experiment 01의 common input loader는 사용하지 않았다.
 
-## 8. Batch Order Alignment Implementation
+## 8. Batch Order Alignment Method
 
-Train 10,251개를 `class_index → dataset-relative path`로 정렬한 뒤 다음 파일에 저장한다.
+Train 10,251 samples를 `class_index → dataset-relative path`로 정렬해 canonical list를 만든다. 각 Seed의 `np.random.default_rng(seed)`로 최대 30 epoch permutation을 미리 만들고 Keras와 PyTorch가 같은 NPZ를 읽는다.
 
-```text
-results/batch_order/canonical_train_samples.csv
-```
+- Keras: 실제 `on_epoch_begin()`에서 persisted order 적용, `shuffle=False`
+- PyTorch: epoch별 `FixedOrderSampler`, `shuffle=False`
+- 양쪽 모두 batch size 32, 321 batches, 마지막 batch 11 samples
+- Runtime CSV schema: `framework, seed, epoch, schedule_index, num_samples, order_hash`
+- 첫 3개 batch는 sample index와 relative path만 preview CSV로 저장
 
-각 Seed의 `np.random.default_rng(seed)`에서 30개 permutation을 순서대로 만들고 다음 NPZ를 양쪽 Framework가 함께 읽는다.
+## 9. Runtime Order Verification
 
-```text
-results/batch_order/seed_42_epoch_orders.npz
-results/batch_order/seed_123_epoch_orders.npz
-results/batch_order/seed_2026_epoch_orders.npz
-```
+Runtime gate는 다음을 순서대로 검증한다.
 
-한 permutation을 32개씩 자르므로 epoch당 321 batches이며 마지막 batch는 11 samples다. PyTorch는 fixed sampler와 `shuffle=False, drop_last=False, num_workers=0`을 사용한다.
+1. Epoch N이 schedule index N-1을 사용했는지 확인
+2. Runtime hash가 persisted NPZ hash와 같은지 확인
+3. 공통 epoch의 Keras/PyTorch hash가 같은지 확인
+4. Runtime epoch 수와 history epoch 수가 같은지 확인
 
-### Runtime evidence
+하나라도 실패하면 `Experiment Validity: INVALID`로 표시하고 성능 수치는 debugging reference로만 취급한다. Attempt 2는 모든 검증을 통과했다.
 
-실제 재학습에서는 epoch 시작 시 선택된 전체 index sequence를 다음 파일에 즉시 기록한다.
+## 10. Hypotheses
 
-```text
-results/runtime_order/keras_seed{seed}_runtime_order.csv
-results/runtime_order/pytorch_seed{seed}_runtime_order.csv
-```
+- **H02-0:** Training Batch Order 차이는 Framework Gap의 주요 원인이 아니며, 동일화 후에도 Baseline과 비슷한 Gap이 유지된다.
+- **H02-1:** Batch Order 차이가 Gap에 영향을 준다면 동일한 order와 grouping 사용 후 Baseline 대비 Accuracy 또는 Macro F1 Gap이 감소한다.
+- 추가 관찰: Batch Order가 Seed Sensitivity에 영향을 준다면 Framework별 3-Seed 표준편차가 달라질 수 있다.
 
-Schema는 `framework, seed, epoch, schedule_index, num_samples, order_hash`다. 각 epoch의 첫 3개 batch는 `results/runtime_order/previews/{framework}_seed{seed}_epoch{epoch}_preview.csv`에 sample index와 relative path로 저장하며 이미지는 복사하지 않는다.
-
-`compare.py`는 성능 파일보다 runtime trace를 먼저 검사한다. 각 Framework가 epoch N에 schedule N-1을 사용했는지, hash가 persisted NPZ와 같은지, 공통 실행 epoch의 Keras/PyTorch hash가 모두 같은지 검증한다. EarlyStopping으로 epoch 수가 다르면 공통 구간은 양쪽 hash를 비교하고 나머지는 해당 Framework의 schedule과 자체 비교한다. 이 gate 또는 runtime/history epoch count가 실패하면 `Experiment Validity: INVALID`를 출력하고 OFAT 성능 분석을 생성하지 않는다.
-
-### 발견된 Keras lifecycle bug
-
-기존 Keras `Sequence`는 `on_epoch_end()`에서 다음 permutation으로 이동했다. Keras 3 `fit()`은 첫 실제 epoch 전에 `epoch_iterator.reset()`을 호출하며, 이 reset도 `on_epoch_end()`를 호출한다.
-
-그 결과 기존 실행은 다음과 같이 진행됐다.
-
-- PyTorch epoch 1: schedule index 0
-- Keras epoch 1: schedule index 1
-- Keras 30 epoch 실행 시 schedule index 0은 사용되지 않고 index 29가 epoch 29/30에 반복됨
-
-수정된 코드는 `on_epoch_end()`에서 advance하지 않고 실제 `on_epoch_begin()`에서 현재 schedule을 선택한다. sanity check도 pre-fit reset → epoch begin lifecycle을 재현한다.
-
-## 9. Alignment Sanity Check and OFAT Audit
-
-저장된 schedule 자체와 pre-fit object 상태에서는 intended epoch 1 hash가 일치했다. 그러나 Keras 3 lifecycle을 적용해 기존 실행의 실제 첫 epoch를 재구성하면 다음처럼 다르다.
-
-| Seed | PyTorch epoch 1 (index 0) | 기존 Keras epoch 1 (index 1) | Match |
-|---:|---|---|---|
-| 42 | `9a886b206e6612468b009a85ea9a7dacab036a0403d5dffca64b3fc72f42ffc2` | `ce2ad93d2f2eff66add4cfeb6b83c4f025b7b71735f0d2f79ab437ec63911453` | `False` |
-| 123 | `d0f508343f1049553be6f5799d05221b4666cf5b0ed6d8b8ec8a2ba30093abd1` | `8db997f177908952d8bffe0c54168c7c559ec4c07b32ef71e9d8fd35b2f414cc` | `False` |
-| 2026 | `c11e142e8c2a9d2f7a50da5d0b1ea2a3888d093e043a724fe119a6d7a4643855` | `3b3f9d6f32d0b21dafcc5ccca6afac081281a9760a84870855788bfb2a58d10d` | `False` |
-
-Canonical list, NPZ와 preview는 정상이고 각 permutation은 10,251개 index를 중복·누락 없이 포함한다. 그러나 기존 sanity는 `fit()`의 pre-fit reset을 재현하지 않아 실제 학습 mismatch를 발견하지 못했다.
-
-**Audit 결론: CASE C — 실제 Batch Order exact match가 아니므로 기존 Experiment 02는 invalid다.** 다른 Baseline 조건의 의미 있는 변경은 발견되지 않았지만 핵심 독립변수 통제가 실패했으므로 기존 결과를 원인 분석에 사용하지 않는다.
-
-## 10. Experimental Environment
-
-- Apple M1 Pro, arm64
-- Python 3.10.3
-- TensorFlow/Keras 2.18.1, TensorFlow Metal GPU
-- PyTorch 2.14.0, MPS
-- Seeds: 42, 123, 2026
-
-## 11. 3-Seed Results — Invalid Run Record
-
-아래 값은 실제 CSV의 기록이다. `†`는 Batch Order mismatch가 있었던 invalid run임을 뜻한다.
+## 11. 3-Seed Results
 
 | Seed | Keras Accuracy | PyTorch Accuracy | Accuracy Gap | Keras Macro F1 | PyTorch Macro F1 | Macro F1 Gap |
 |---:|---:|---:|---:|---:|---:|---:|
-| 42† | 44.98% | 50.02% | +5.04%p | 43.28% | 49.05% | +5.77%p |
-| 123† | 48.03% | 51.66% | +3.63%p | 45.96% | 51.77% | +5.81%p |
-| 2026† | 35.81% | 45.62% | +9.80%p | 30.35% | 43.32% | +12.97%p |
+| 42 | 50.70% | 50.02% | -0.68%p | 50.61% | 49.05% | -1.56%p |
+| 123 | 47.07% | 51.66% | +4.58%p | 45.04% | 51.77% | +6.73%p |
+| 2026 | 45.44% | 45.62% | +0.18%p | 44.54% | 43.32% | -1.22%p |
 
-## 12. Mean ± Std — Descriptive Only
+| Seed | Framework | Test Loss | Best Epoch | Epochs Trained |
+|---:|---|---:|---:|---:|
+| 42 | Keras | 1.3070 | 20 | 27 |
+| 42 | PyTorch | 1.2809 | 24 | 30 |
+| 123 | Keras | 1.3442 | 27 | 30 |
+| 123 | PyTorch | 1.2718 | 29 | 30 |
+| 2026 | Keras | 1.3755 | 18 | 25 |
+| 2026 | PyTorch | 1.3893 | 14 | 21 |
+
+Seed 42에서는 Accuracy와 Macro F1 모두 Keras가 높았다. Seed 123에서는 PyTorch가 높았고, Seed 2026은 Accuracy가 거의 같으며 Macro F1은 Keras가 1.22%p 높았다.
+
+## 12. Mean ± Std
 
 | Metric | Keras | PyTorch |
 |---|---:|---:|
-| Accuracy† | 42.94 ± 6.36% | 49.10 ± 3.12% |
-| Macro F1† | 39.86 ± 8.35% | 48.05 ± 4.31% |
-| Test Loss† | 1.4584 | 1.3140 |
+| Accuracy | 47.74 ± 2.70% | 49.10 ± 3.12% |
+| Macro F1 | 46.73 ± 3.37% | 48.05 ± 4.31% |
+| Test Loss | 1.3422 ± 0.0343 | 1.3140 ± 0.0653 |
 
-## 13. Comparison with Baseline — Descriptive Only
+## 13. Comparison with Baseline
 
-| Metric | Baseline | Invalid run | Raw change |
+| Metric | Baseline | Experiment 02 | Change |
 |---|---:|---:|---:|
-| Keras Accuracy | 47.19% | 42.94% | -4.25%p |
-| Keras Macro F1 | 45.84% | 39.86% | -5.98%p |
+| Keras Accuracy | 47.19% | 47.74% | +0.54%p |
+| Keras Macro F1 | 45.84% | 46.73% | +0.88%p |
 | PyTorch Accuracy | 51.17% | 49.10% | -2.07%p |
 | PyTorch Macro F1 | 50.08% | 48.05% | -2.03%p |
-| Accuracy signed gap | +3.98%p | +6.16%p | +2.18%p |
-| Macro F1 signed gap | +4.23%p | +8.18%p | +3.95%p |
+| Accuracy Signed Mean Gap | +3.98%p | +1.36%p | -2.62%p (65.78% 감소) |
+| Macro F1 Signed Mean Gap | +4.23%p | +1.32%p | -2.91%p (68.87% 감소) |
 
-두 Framework 모두 평균 성능이 낮았고 Keras의 하락 폭이 더 컸다. 다만 서로 다른 batch schedule을 사용한 실행이므로 이를 Batch Order 동일화의 효과로 해석할 수 없다.
+Gap 감소에는 Keras의 소폭 향상과 PyTorch 평균 성능 하락이 함께 기여했다. Keras만 개선됐거나 PyTorch만 악화된 결과로 단순화할 수 없다.
 
-## 14. Gap Effect — Not Eligible for OFAT Conclusion
+## 14. Signed Gap vs Mean Absolute Paired Gap
 
-원시 계산상 Accuracy absolute gap은 3.98→6.16%p, Macro F1 absolute gap은 4.23→8.18%p다. 각각 54.75%, 93.33% 확대에 해당한다. 이 값들은 `archive/invalid_run_01/comparison_summary.json`의 산술 결과와 일치하지만, intervention fidelity가 실패했으므로 유효한 Gap Reduction/Expansion 추정치가 아니다.
+Signed Mean Gap은 `mean(PyTorch - Keras)`로 평균적인 방향을 나타낸다. Mean Absolute Paired Gap은 `mean(abs(PyTorch - Keras))`로 Seed별 실제 차이의 평균 크기를 나타낸다.
 
-## 15. Seed Stability — Descriptive Only
+| Metric | Gap definition | Baseline | Experiment 02 | Reduction |
+|---|---|---:|---:|---:|
+| Accuracy | Signed Mean | 3.98%p | 1.36%p | 65.78% |
+| Accuracy | Mean Absolute Paired | 3.98%p | 1.82%p | 54.37% |
+| Macro F1 | Signed Mean | 4.23%p | 1.32%p | 68.87% |
+| Macro F1 | Mean Absolute Paired | 4.23%p | 3.17%p | 25.18% |
 
-| Framework / Metric | Baseline std | Invalid run std | Raw change |
+Seed별 우위 방향이 바뀌어 signed difference가 일부 상쇄된다. 따라서 “Framework 차이가 68.87% 사라졌다”라고 해석할 수 없다. 평균적인 PyTorch 방향의 편향은 크게 감소했지만, 개별 Seed의 절대적인 성능 차이는 완전히 제거되지 않았다.
+
+## 15. Seed-Level Analysis
+
+Baseline에서는 세 Seed 모두 PyTorch가 높았지만 Attempt 2의 Macro F1 방향은 Keras/PyTorch/Keras로 바뀌었다. 동일 Batch Order 사용 후 Baseline의 일관된 PyTorch 우위 방향이 사라진 것은 Batch Order 차이가 방향성에 영향을 주는 요인일 가능성을 시사한다.
+
+Seed 123이 가장 큰 차이를 만들었다. Macro F1 Gap은 Seed 123에서 +6.73%p인 반면 Seed 42와 2026은 각각 -1.56%p, -1.22%p다. 따라서 평균 signed gap이 작더라도 두 Framework가 Seed별로 완전히 동일해졌다고 볼 수 없다.
+
+독립 branch인 Experiment 01의 Macro F1 Signed Gap은 2.20%p, Mean Absolute Paired Gap은 3.91%p였고, Experiment 02는 각각 1.32%p와 3.17%p였다. 두 intervention 모두 Baseline 대비 감소 방향이지만 03~08 결과 전이므로 Batch Order가 가장 중요한 원인이라고 결론내리지 않는다.
+
+## 16. Seed Stability
+
+| Framework / Metric | Baseline std | Experiment 02 std | Change |
 |---|---:|---:|---:|
-| Keras Accuracy | 2.18%p | 6.36%p | +4.18%p |
-| Keras Macro F1 | 2.45%p | 8.35%p | +5.90%p |
+| Keras Accuracy | 2.18%p | 2.70%p | +0.52%p |
+| Keras Macro F1 | 2.45%p | 3.37%p | +0.92%p |
 | PyTorch Accuracy | 0.11%p | 3.12%p | +3.01%p |
 | PyTorch Macro F1 | 0.23%p | 4.31%p | +4.09%p |
 
-원시 실행에서는 두 Framework 모두 Seed variation이 커졌지만, schedule mismatch 때문에 Batch Order 동일화의 효과로 귀속하지 않는다.
-
-## 16. Seed 2026 Observation
-
-Keras는 Accuracy 35.81%, Macro F1 30.35%, best validation-loss epoch 7, 14 epochs에서 종료됐다. PyTorch는 Accuracy 45.62%, Macro F1 43.32%, best validation-loss epoch 14, 21 epochs에서 종료됐다.
-
-두 Framework 모두 42/123보다 낮았지만 같은 epoch order를 사용하지 않았으므로 공통 permutation이 양쪽에 동시에 불리했다고 판단할 수 없다. Keras train loss는 2.0984→1.4079로 계속 감소한 반면 validation loss는 epoch 7의 1.6215 이후 개선되지 않고 1.8232로 끝났다. PyTorch도 train loss는 2.0580→1.1180으로 감소했지만 validation-loss 최저점은 epoch 14의 1.4020이었다. 이는 train 정체보다는 validation 변동/일반화 정체 양상에 가깝다.
+Batch Order Alignment 후 Gap 감소가 관찰됐지만 Seed stability는 개선되지 않았다. 특히 PyTorch variation이 Baseline보다 크게 증가했다.
 
 ## 17. Training Dynamics
 
-- Keras 42: best validation loss epoch 26; LR 변경 epoch 11/16/21/30; 30 epochs 완료.
-- Keras 123: best validation loss epoch 27, best validation accuracy epoch 29; LR 변경 epoch 9/15/24; 30 epochs 완료.
-- Keras 2026: best validation loss/accuracy epoch 7; LR 0.0005가 epoch 11부터 기록; 7 bad epochs 후 epoch 14 종료.
-- PyTorch 42: best validation loss epoch 24, best validation accuracy epoch 30; LR 변경 epoch 19/29; 30 epochs 완료.
-- PyTorch 123: best validation loss/accuracy epoch 29; LR 변경 epoch 17/28; 30 epochs 완료.
-- PyTorch 2026: best validation loss epoch 14, best validation accuracy epoch 20; LR 0.0005가 epoch 19부터 기록; 7 bad epochs 후 epoch 21 종료.
-
-모든 Seed에서 train loss는 전반적으로 하락했지만 validation curve는 큰 진동을 보였다. Seed 2026의 정체 시점은 Keras epoch 7과 PyTorch epoch 14로 같지 않다.
+- 모든 Seed에서 train loss는 전반적으로 감소했지만 validation loss/accuracy는 크게 진동했다.
+- Seed 42는 양쪽 모두 초반 validation instability가 강했다. Epoch 7 validation loss는 Keras 2.9163, PyTorch 3.1221이었고 best validation-loss epoch는 각각 20과 24였다.
+- Keras Seed 123은 epoch 4 validation loss가 17.1640까지 일시적으로 상승한 뒤 회복했다.
+- Seed 123 best epoch에서 Keras train/validation accuracy는 53.39%/48.45%, PyTorch는 62.64%/51.37%였다. PyTorch가 후반에 더 강하게 fitting했다.
+- Seed 2026 best validation-loss epoch는 Keras 18, PyTorch 14였다. Test Accuracy는 0.18%p 차이였고 Macro F1은 Keras가 1.22%p 높았다.
+- LR 변경 epoch는 Keras 42: 12/18/24, Keras 123: 10/15/22, Keras 2026: 15/22였다. PyTorch 42: 19/29, PyTorch 123: 17/28, PyTorch 2026: 19였다.
 
 ## 18. Figures
 
-다음 여섯 파일이 실제로 존재하며 history CSV에서 생성됐다. 단, invalid run의 학습 곡선이다.
+![Keras 3-Seed Loss](results/figures/keras_3seed_loss.png)
 
-![Keras 3-Seed Loss](archive/invalid_run_01/figures/keras_3seed_loss.png)
+![Keras 3-Seed Accuracy](results/figures/keras_3seed_accuracy.png)
 
-![Keras 3-Seed Accuracy](archive/invalid_run_01/figures/keras_3seed_accuracy.png)
+![PyTorch 3-Seed Loss](results/figures/pytorch_3seed_loss.png)
 
-![PyTorch 3-Seed Loss](archive/invalid_run_01/figures/pytorch_3seed_loss.png)
+![PyTorch 3-Seed Accuracy](results/figures/pytorch_3seed_accuracy.png)
 
-![PyTorch 3-Seed Accuracy](archive/invalid_run_01/figures/pytorch_3seed_accuracy.png)
+![Validation Loss Comparison](results/figures/validation_loss_3seed_comparison.png)
 
-![Validation Loss Comparison](archive/invalid_run_01/figures/validation_loss_3seed_comparison.png)
-
-![Validation Accuracy Comparison](archive/invalid_run_01/figures/validation_accuracy_3seed_comparison.png)
+![Validation Accuracy Comparison](results/figures/validation_accuracy_3seed_comparison.png)
 
 ## 19. Hypothesis Evaluation
 
-- **H02-1:** 판정 보류. 원시 gap은 감소하지 않았지만 실제 alignment가 실패했으므로 `Not Supported`라는 OFAT 증거로 채택하지 않는다.
-- **H02-0:** 판정 보류. 성능과 분산이 크게 달라진 원시 결과가 있으나, mismatch 실행으로 Batch Order 영향이 없거나 있다는 결론 모두 낼 수 없다.
+- **H02-0 — 지지 약화:** Signed Mean Gap과 Mean Absolute Paired Gap이 모두 Baseline보다 감소했다. 다만 Seed 3개만으로 통계적으로 기각했다고 표현하지 않는다.
+- **H02-1 — 부분 지지:** Accuracy와 Macro F1에서 두 종류의 Gap이 모두 감소했다. 그러나 Seed 123에는 큰 Macro F1 Gap이 남았고 두 Framework의 Seed variance도 증가했으므로 Batch Order 하나가 전체 Gap을 설명한다고 볼 수 없다.
 
 ## 20. Interpretation
 
-기존 실행에서는 평균 성능 하락, 더 큰 Framework Gap과 Seed variability가 관찰됐다. 그러나 핵심 조작인 동일 epoch order가 실제 `fit()`에서 유지되지 않았으므로 이 변화는 Batch Order Alignment의 결과가 아니다. Baseline Gap의 단독 원인 여부와 optimization sensitivity에 관한 해석은 수정된 코드로 3-Seed를 재실행한 뒤 내려야 한다.
+본 유효한 재실험에서 Batch Order를 동일화하자 Baseline의 일관된 PyTorch 우위 방향이 사라졌다. Signed Macro F1 Gap은 4.23→1.32%p로 감소했고 Mean Absolute Paired Macro F1 Gap도 4.23→3.17%p로 감소했다. 이는 Batch Order 차이가 Baseline Framework Gap에 영향을 주는 요인일 가능성을 시사한다.
+
+그러나 Seed별 방향과 크기는 일관되지 않았고, 평균 Gap 감소에는 Keras의 소폭 향상과 PyTorch 평균 하락이 함께 작용했다. 특히 Seed 123의 차이와 증가한 Seed variance를 고려하면 Batch Order를 단독 원인으로 해석하기 어렵다.
 
 ## 21. Limitations
 
-- 기존 실행은 Keras/PyTorch epoch order mismatch로 invalid다.
-- 재실행 후에도 Seed 3개, 고정 split, 하나의 CNN/dataset이라는 한계가 있다.
-- OFAT은 variable interaction을 직접 분리하지 못한다.
-- Framework별 augmentation RNG, initialization, input processing, optimizer implementation과 callback timing은 다르다.
+- Seed가 3개뿐이라 stochastic distribution과 통계적 유의성을 충분히 추정하지 못한다.
+- 하나의 고정 split, dataset과 CNN architecture에 한정된다.
+- OFAT은 Batch Order의 단독 intervention을 보지만 다른 변수와의 interaction은 직접 분리하지 못한다.
+- Framework별 augmentation RNG, initialization, input processing, optimizer와 callback semantics는 다르다.
 - TensorFlow Metal과 PyTorch MPS backend 차이가 유지된다.
-- 저장된 schedule은 의도 조건을 증명하지만 실제 소비 순서의 별도 trace가 없으면 training fidelity를 완전히 증명하지 못한다.
+- EarlyStopping으로 Framework별 실행 epoch 수가 달라 공통 구간만 cross-framework hash 비교 대상이다.
 
 ## 22. Conclusion
 
-Attempt 1의 수치와 history는 archive에 보존했지만 Keras lifecycle bug 때문에 OFAT 결과로는 무효다. 버그 수정, runtime order logging과 validation gate 구현은 완료했다. Attempt 2 재학습 전까지 Experiment 02의 가설 및 Baseline 대비 효과 평가는 Pending이다.
+Batch Order를 동일화한 유효한 Attempt 2에서는 Baseline에서 세 Seed 모두 나타났던 일관된 PyTorch 우위 방향이 사라졌다. Signed Macro F1 Gap은 4.23%p에서 1.32%p로, Seed별 Mean Absolute Macro F1 Gap은 4.23%p에서 3.17%p로 감소했다.
+
+따라서 본 실험은 Batch Order 차이가 Baseline Framework Gap에 영향을 주는 요인 중 하나일 가능성을 보여준다. 다만 Seed 123에서 여전히 큰 차이가 존재하고 두 Framework 모두 Seed variance가 증가했기 때문에 Batch Order만으로 전체 Framework Gap을 설명할 수는 없다.
