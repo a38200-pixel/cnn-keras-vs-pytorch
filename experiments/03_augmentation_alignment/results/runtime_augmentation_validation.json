@@ -1,0 +1,57 @@
+{
+  "status": "VALID",
+  "mode": "strict_sample_id",
+  "all_common_epoch_hashes_match": true,
+  "details": {
+    "42": {
+      "keras": {
+        "epochs_recorded": 30,
+        "first_hash": "584f0e810f1a2a2739571ef8e479bf590d07123dd533e48999a7c5ca9e7dc9cf",
+        "last_hash": "c9ae82e83812d0a9efb4ad38afb669761b1588532666e9552179fec715be5ce0",
+        "self_schedule_match": true
+      },
+      "pytorch": {
+        "epochs_recorded": 19,
+        "first_hash": "584f0e810f1a2a2739571ef8e479bf590d07123dd533e48999a7c5ca9e7dc9cf",
+        "last_hash": "d7717829d9729cf291f09a6784dbab16a4bef6138b604c0965c548262135452e",
+        "self_schedule_match": true
+      },
+      "common_epochs_compared": 19,
+      "framework_hash_exact_match": true
+    },
+    "123": {
+      "keras": {
+        "epochs_recorded": 30,
+        "first_hash": "eacb468afe4cba8253128c8eab79d46a42306b0ed3dbf6e45d3881aa3052245b",
+        "last_hash": "a5788b76434bb41aa7a9dcf1726ec1ad667164816944c3538fcd24ed19c01322",
+        "self_schedule_match": true
+      },
+      "pytorch": {
+        "epochs_recorded": 24,
+        "first_hash": "eacb468afe4cba8253128c8eab79d46a42306b0ed3dbf6e45d3881aa3052245b",
+        "last_hash": "2a07214b4d4cd2d9c8385b93b1bda8e5e2dc6d8940f9a8312a257d0097b067d8",
+        "self_schedule_match": true
+      },
+      "common_epochs_compared": 24,
+      "framework_hash_exact_match": true
+    },
+    "2026": {
+      "keras": {
+        "epochs_recorded": 30,
+        "first_hash": "a5109529ba35d26065158cf20c8c1e23a3d2ab1bdddd02b6f41281125599a959",
+        "last_hash": "acd646a02749595b2aa3205f7e998dc2b619f38dc042874e03ac81a0aebf149e",
+        "self_schedule_match": true
+      },
+      "pytorch": {
+        "epochs_recorded": 23,
+        "first_hash": "a5109529ba35d26065158cf20c8c1e23a3d2ab1bdddd02b6f41281125599a959",
+        "last_hash": "642d0106bc5a9474f67613a1611e0d1c5e2b2c9bf2f3504853e4640271442ec1",
+        "self_schedule_match": true
+      },
+      "common_epochs_compared": 23,
+      "framework_hash_exact_match": true
+    }
+  },
+  "missing": [],
+  "errors": []
+}

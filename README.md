@@ -147,7 +147,7 @@ Seed별 Gap은 `PyTorch metric_seed − Keras metric_seed`로 정의한다. `Sig
 | 00 | Baseline | 완료 | 완료 | 3-Seed 결과 분석 완료 |
 | 01 | Input Tensor | 완료, Input equality/GPU sanity 통과 | 완료 | Baseline 비교 및 history 분석 완료 |
 | 02 | Batch Order | Attempt 1 Invalid / Bug Fix 완료 | Attempt 2 VALID / 3-Seed 완료 | Runtime 검증 및 Baseline 분석 완료 |
-| 03 | Augmentation | 대기 | 대기 | 대기 |
+| 03 | Augmentation | 구현 완료, strict sample-ID runtime 검증 | 3-Seed 완료 | VALID / Baseline 비교 및 history 분석 완료 |
 | 04 | Initial Weight | 대기 | 대기 | 대기 |
 | 05 | Output / Loss | 대기 | 대기 | 대기 |
 | 06 | Adam | 대기 | 대기 | 대기 |
@@ -170,22 +170,24 @@ Seed별 Gap은 `PyTorch metric_seed − Keras metric_seed`로 정의한다. `Sig
 ### 14. Single-Factor Ablation Results
 
 <!-- ABLATION_RESULTS_START -->
-| Experiment | Aligned Variable | Keras F1 | PyTorch F1 | Signed Mean Gap | Mean Absolute Paired Gap |
-|---|---|---:|---:|---:|---:|
-| Baseline | None | 45.84% | 50.08% | 4.23%p | 4.23%p |
-| Input | Input Tensor | 46.46% | 48.66% | 2.20%p | 3.91%p |
-| Batch | Batch Order | 46.73% | 48.05% | **1.32%p** | **3.17%p** |
-| Augmentation | Augmentation | - | - | - | - |
-| Weight | Initial Weight | - | - | - | - |
-| Loss | Output / Loss | - | - | - | - |
-| Adam | Adam | - | - | - | - |
-| BatchNorm | BatchNorm | - | - | - | - |
-| Callback | ES / LR Scheduler | - | - | - | - |
+| Experiment | Aligned Variable | Keras F1 | PyTorch F1 | Signed Mean Gap | Mean Absolute Paired Gap | Status |
+|---|---|---:|---:|---:|---:|---|
+| 00 Baseline | None | 45.84% | 50.08% | 4.23%p | 4.23%p | Completed |
+| 01 Input | Input Tensor | 46.46% | 48.66% | 2.20%p | 3.91%p | Completed |
+| 02 Batch | Batch Order | 46.73% | 48.05% | 1.32%p | 3.17%p | Attempt 2 VALID |
+| 03 Augmentation | Augmentation | 43.15% | 45.46% | 2.31%p | 3.65%p | VALID |
+| 04 Weight | Initial Weight | - | - | - | - | Pending |
+| 05 Loss | Output / Loss | - | - | - | - | Pending |
+| 06 Adam | Adam | - | - | - | - | Pending |
+| 07 BatchNorm | BatchNorm | - | - | - | - | Pending |
+| 08 Callback | ES / LR Scheduler | - | - | - | - | Pending |
 <!-- ABLATION_RESULTS_END -->
 
-Signed Mean Gap은 `mean(PyTorch - Keras)`, Mean Absolute Paired Gap은 `mean(abs(PyTorch - Keras))`다. Seed별 우위 방향이 바뀌면 signed 값이 상쇄될 수 있으므로 두 값을 함께 본다. Experiment 01과 02는 서로 독립적인 Baseline branch다.
+Signed Mean Gap은 `mean(PyTorch - Keras)`, Mean Absolute Paired Gap은 `mean(abs(PyTorch - Keras))`다. Seed별 우위 방향이 바뀌면 signed 값이 상쇄될 수 있으므로 두 값을 함께 본다. Experiment 01–03은 서로 독립적인 Baseline branch다.
 
 Experiment 02 Attempt 1은 실제 order mismatch로 archive에 보존하고 공식 표에서 제외했다. Bug Fix 후 Attempt 2는 runtime에서 공통 수행한 모든 epoch의 전체 order hash가 일치해 `VALID` 판정을 받았으며, 위 Batch 행은 Attempt 2만 사용한다.
+
+Experiment 03은 strict sample-ID runtime augmentation validation이 `VALID`다. 공통 수행 epoch의 sample별 flip·rotation parameter hash가 모두 일치했지만, Framework별 회전 연산 결과가 pixel-exact라는 뜻은 아니다. 위 03 행은 실제 유효한 3-Seed 결과를 사용한다.
 
 ### 15. Layer-by-Layer Results
 
@@ -201,6 +203,8 @@ Experiment 01에서 augmentation 이전 deterministic input preprocessing을 동
 
 Experiment 02 Attempt 1은 Keras lifecycle bug로 무효 처리하고 archive에만 보존했다. 수정 후 Attempt 2는 runtime order validation을 통과했다. 공식 결과에서 Macro F1 Signed Mean Gap은 4.23%p에서 1.32%p로 68.87% 감소했고, Mean Absolute Paired Gap은 4.23%p에서 3.17%p로 25.18% 감소했다. Baseline의 세 Seed 모두 PyTorch 우위였던 방향도 Keras/PyTorch/Keras로 바뀌었다. 다만 Seed 123의 Macro F1 Gap은 +6.73%p였고 양쪽 Seed 변동성이 증가했으므로 Batch Order를 단독 원인으로 보지 않는다. 상세 결과는 [Experiment 02 README](experiments/02_batch_order_alignment/README.md)에 정리했다.
 
+Experiment 03의 유효한 Augmentation Alignment에서는 Macro F1 Signed Mean Gap이 4.23→2.31%p로 45.52% 감소했으나 Mean Absolute Paired Gap은 4.23→3.65%p로 13.71% 감소했다. Seed 2026에서는 Keras가 역전했고 Seed 123에는 +6.40%p Gap이 남았다. 양쪽 Framework의 평균 Accuracy와 F1도 Baseline보다 낮아져 Gap 감소를 성능 향상으로 해석할 수 없다. 현재까지 독립 branch 중 02가 가장 큰 Seed-level absolute F1 Gap 감소를 보였지만 04–08 결과 전에는 주요 원인으로 확정하지 않는다. [Experiment 03 README](experiments/03_augmentation_alignment/README.md)에 runtime·history·한계를 기록했다.
+
 - Seed마다 우위가 바뀌면 framework 효과보다 stochastic variation이 큰 것으로 보고 H0를 기각하지 않는다.
 - 세 Seed에서 같은 방향의 gap이 반복되면 H1을 검토할 재현성 근거로 사용한다.
 - 특정 single-factor branch에서만 gap이 크게 줄면 해당 요소를 주요 원인 후보로 본다.
@@ -214,7 +218,7 @@ Experiment 02 Attempt 1은 Keras lifecycle bug로 무효 처리하고 archive에
 |---|---|---|
 | H0 | 근거 약화 | 3 Seed 모두 같은 방향의 Accuracy/Macro F1 Gap이 관찰됨. 3 Seed만으로 통계적 기각을 주장하지 않음 |
 | H1 | 추가 분석 근거 확보 | 반복 가능한 Framework Gap이 관찰되어 01~08 원인 분석을 진행함 |
-| H2 | 부분 지지 | Input과 Batch Order 독립 branch 모두 Baseline 대비 Gap 감소 방향. Batch Order는 Macro F1 Signed Mean Gap 68.87%, Mean Absolute Paired Gap 25.18% 감소. Seed별 불일치와 분산 증가로 단독 원인으로 확정하지 않음 |
+| H2 | 부분 지지 | Input, Batch Order, Augmentation 독립 branch 모두 Baseline 대비 F1 Gap 감소 방향. 03은 signed 45.52%, mean absolute paired 13.71% 감소했으나 양쪽 절대 성능 하락·Seed 분산 증가가 동반됨. 단독 원인으로 확정하지 않음 |
 | H3 | Pending | - |
 <!-- HYPOTHESIS_RESULTS_END -->
 

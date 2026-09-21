@@ -1,0 +1,75 @@
+{
+  "scope": "diagnostic-only common PIL-resized pixels; training pipelines unchanged",
+  "seed": 42,
+  "epoch_index": 0,
+  "num_samples": 8,
+  "mae_mean": 0.8034983202815056,
+  "mse_mean": 16.216075137257576,
+  "max_absolute_difference": 114.52914428710938,
+  "samples": [
+    {
+      "sample_identity": "train/anger/10_image0000343.jpg",
+      "flip_applied": false,
+      "rotation_angle_deg": -3.252539364631557,
+      "mae": 0.8618262410163879,
+      "mse": 15.652657508850098,
+      "max_absolute_difference": 91.97122192382812
+    },
+    {
+      "sample_identity": "train/anger/10_image0000400.jpg",
+      "flip_applied": true,
+      "rotation_angle_deg": 3.4881843174507488,
+      "mae": 0.7662739753723145,
+      "mse": 11.842647552490234,
+      "max_absolute_difference": 80.5420913696289
+    },
+    {
+      "sample_identity": "train/anger/10_image0000416.jpg",
+      "flip_applied": false,
+      "rotation_angle_deg": 0.9498871547619503,
+      "mae": 0.9534891247749329,
+      "mse": 25.240936279296875,
+      "max_absolute_difference": 103.24006652832031
+    },
+    {
+      "sample_identity": "train/anger/10_image0000593.jpg",
+      "flip_applied": false,
+      "rotation_angle_deg": 2.8487303742236385,
+      "mae": 0.5842393040657043,
+      "mse": 2.55015230178833,
+      "max_absolute_difference": 53.649478912353516
+    },
+    {
+      "sample_identity": "train/anger/10_image0000602.jpg",
+      "flip_applied": true,
+      "rotation_angle_deg": -2.103325919217274,
+      "mae": 0.5181064605712891,
+      "mse": 1.865646481513977,
+      "max_absolute_difference": 57.727210998535156
+    },
+    {
+      "sample_identity": "train/anger/10_image0000724.jpg",
+      "flip_applied": false,
+      "rotation_angle_deg": 4.066446285774088,
+      "mae": 0.919161319732666,
+      "mse": 26.49370574951172,
+      "max_absolute_difference": 110.0184326171875
+    },
+    {
+      "sample_identity": "train/anger/10_image0000996.jpg",
+      "flip_applied": true,
+      "rotation_angle_deg": 4.675877599612704,
+      "mae": 0.8726350665092468,
+      "mse": 16.949453353881836,
+      "max_absolute_difference": 88.03303527832031
+    },
+    {
+      "sample_identity": "train/anger/10_image0001161.jpg",
+      "flip_applied": false,
+      "rotation_angle_deg": -4.934605396281607,
+      "mae": 0.9522550702095032,
+      "mse": 29.13340187072754,
+      "max_absolute_difference": 114.52914428710938
+    }
+  ]
+}

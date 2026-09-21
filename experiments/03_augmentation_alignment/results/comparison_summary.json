@@ -1,0 +1,214 @@
+{
+  "experiment_validity": "VALID",
+  "runtime_augmentation_validation": {
+    "status": "VALID",
+    "mode": "strict_sample_id",
+    "all_common_epoch_hashes_match": true,
+    "details": {
+      "42": {
+        "keras": {
+          "epochs_recorded": 30,
+          "first_hash": "584f0e810f1a2a2739571ef8e479bf590d07123dd533e48999a7c5ca9e7dc9cf",
+          "last_hash": "c9ae82e83812d0a9efb4ad38afb669761b1588532666e9552179fec715be5ce0",
+          "self_schedule_match": true
+        },
+        "pytorch": {
+          "epochs_recorded": 19,
+          "first_hash": "584f0e810f1a2a2739571ef8e479bf590d07123dd533e48999a7c5ca9e7dc9cf",
+          "last_hash": "d7717829d9729cf291f09a6784dbab16a4bef6138b604c0965c548262135452e",
+          "self_schedule_match": true
+        },
+        "common_epochs_compared": 19,
+        "framework_hash_exact_match": true
+      },
+      "123": {
+        "keras": {
+          "epochs_recorded": 30,
+          "first_hash": "eacb468afe4cba8253128c8eab79d46a42306b0ed3dbf6e45d3881aa3052245b",
+          "last_hash": "a5788b76434bb41aa7a9dcf1726ec1ad667164816944c3538fcd24ed19c01322",
+          "self_schedule_match": true
+        },
+        "pytorch": {
+          "epochs_recorded": 24,
+          "first_hash": "eacb468afe4cba8253128c8eab79d46a42306b0ed3dbf6e45d3881aa3052245b",
+          "last_hash": "2a07214b4d4cd2d9c8385b93b1bda8e5e2dc6d8940f9a8312a257d0097b067d8",
+          "self_schedule_match": true
+        },
+        "common_epochs_compared": 24,
+        "framework_hash_exact_match": true
+      },
+      "2026": {
+        "keras": {
+          "epochs_recorded": 30,
+          "first_hash": "a5109529ba35d26065158cf20c8c1e23a3d2ab1bdddd02b6f41281125599a959",
+          "last_hash": "acd646a02749595b2aa3205f7e998dc2b619f38dc042874e03ac81a0aebf149e",
+          "self_schedule_match": true
+        },
+        "pytorch": {
+          "epochs_recorded": 23,
+          "first_hash": "a5109529ba35d26065158cf20c8c1e23a3d2ab1bdddd02b6f41281125599a959",
+          "last_hash": "642d0106bc5a9474f67613a1611e0d1c5e2b2c9bf2f3504853e4640271442ec1",
+          "self_schedule_match": true
+        },
+        "common_epochs_compared": 23,
+        "framework_hash_exact_match": true
+      }
+    },
+    "missing": [],
+    "errors": []
+  },
+  "comparison_reference": "00_baseline_final_cnn_3seed",
+  "gap_definition": "PyTorch - Keras",
+  "baseline_00": {
+    "keras": {
+      "accuracy_mean": 0.47193221364805565,
+      "accuracy_std": 0.02179477389018709,
+      "macro_f1_mean": 0.4584489064756623,
+      "macro_f1_std": 0.02447342597702371,
+      "test_loss_mean": 1.3668922583262126,
+      "test_loss_std": 0.04039791549758203
+    },
+    "pytorch": {
+      "accuracy_mean": 0.511726433651082,
+      "accuracy_std": 0.0011423565494432966,
+      "macro_f1_mean": 0.5007715209955931,
+      "macro_f1_std": 0.0022546918164197682,
+      "test_loss_mean": 1.2733298723555888,
+      "test_loss_std": 0.018099022833449576
+    },
+    "gaps": {
+      "accuracy": {
+        "definition": "PyTorch - Keras",
+        "paired_difference": {
+          "42": 0.01815705855651395,
+          "123": 0.03812982296867912,
+          "2026": 0.06309577848388565
+        },
+        "signed_mean_gap": 0.03979422000302624,
+        "mean_absolute_paired_gap": 0.03979422000302624,
+        "signed_gap": 0.03979422000302624,
+        "absolute_gap": 0.03979422000302624
+      },
+      "macro_f1": {
+        "definition": "PyTorch - Keras",
+        "paired_difference": {
+          "42": 0.018618394991111953,
+          "123": 0.04497350824331586,
+          "2026": 0.06337594032536437
+        },
+        "signed_mean_gap": 0.042322614519930725,
+        "mean_absolute_paired_gap": 0.042322614519930725,
+        "signed_gap": 0.042322614519930725,
+        "absolute_gap": 0.042322614519930725
+      },
+      "test_loss": {
+        "definition": "PyTorch - Keras",
+        "paired_difference": {
+          "42": -0.03530385858948759,
+          "123": -0.10588123584085851,
+          "2026": -0.13950206348152516
+        },
+        "signed_mean_gap": -0.09356238597062376,
+        "mean_absolute_paired_gap": 0.09356238597062376,
+        "signed_gap": -0.09356238597062376,
+        "absolute_gap": 0.09356238597062376
+      }
+    }
+  },
+  "experiment_03": {
+    "keras": {
+      "accuracy_mean": 0.4499924345589348,
+      "accuracy_std": 0.02926447167204288,
+      "macro_f1_mean": 0.43152640300161504,
+      "macro_f1_std": 0.03434809125263218,
+      "test_loss_mean": 1.4189925988515217,
+      "test_loss_std": 0.064685558884472
+    },
+    "pytorch": {
+      "accuracy_mean": 0.46224844908458157,
+      "accuracy_std": 0.005000064046560236,
+      "macro_f1_mean": 0.45458461835447445,
+      "macro_f1_std": 0.007818108157237184,
+      "test_loss_mean": 1.3599632107592834,
+      "test_loss_std": 0.02166797172573794
+    },
+    "gaps": {
+      "accuracy": {
+        "definition": "PyTorch - Keras",
+        "paired_difference": {
+          "42": 0.019064911484339475,
+          "123": 0.04085338175215608,
+          "2026": -0.0231502496595552
+        },
+        "signed_mean_gap": 0.012256014525646786,
+        "mean_absolute_paired_gap": 0.027689514298683587,
+        "signed_gap": 0.012256014525646786,
+        "absolute_gap": 0.012256014525646786
+      },
+      "macro_f1": {
+        "definition": "PyTorch - Keras",
+        "paired_difference": {
+          "42": 0.025363639572422825,
+          "123": 0.0640047487785565,
+          "2026": -0.020193742292401118
+        },
+        "signed_mean_gap": 0.0230582153528594,
+        "mean_absolute_paired_gap": 0.03652071021446015,
+        "signed_gap": 0.0230582153528594,
+        "absolute_gap": 0.0230582153528594
+      },
+      "test_loss": {
+        "definition": "PyTorch - Keras",
+        "paired_difference": {
+          "42": -0.08398494821107771,
+          "123": -0.127004174660186,
+          "2026": 0.03390095859454867
+        },
+        "signed_mean_gap": -0.059029388092238344,
+        "mean_absolute_paired_gap": 0.08163002715527079,
+        "signed_gap": -0.059029388092238344,
+        "absolute_gap": 0.059029388092238344
+      }
+    }
+  },
+  "gap_effect": {
+    "accuracy": {
+      "signed_gap_reduction": 0.02753820547737945,
+      "signed_gap_reduction_rate": 0.6920152091254772,
+      "absolute_paired_gap_reduction": 0.01210470570434265,
+      "absolute_paired_gap_reduction_rate": 0.30418250950570513,
+      "mean_absolute_paired_gap_reduction": 0.01210470570434265,
+      "mean_absolute_paired_gap_reduction_rate": 0.30418250950570513
+    },
+    "macro_f1": {
+      "signed_gap_reduction": 0.019264399167071324,
+      "signed_gap_reduction_rate": 0.45517979892284915,
+      "absolute_paired_gap_reduction": 0.005801904305470576,
+      "absolute_paired_gap_reduction_rate": 0.1370875682252173,
+      "mean_absolute_paired_gap_reduction": 0.005801904305470576,
+      "mean_absolute_paired_gap_reduction_rate": 0.1370875682252173
+    },
+    "test_loss": {
+      "signed_gap_reduction": 0.034532997878385416,
+      "signed_gap_reduction_rate": 0.36909060751430506,
+      "absolute_paired_gap_reduction": 0.01193235881535297,
+      "absolute_paired_gap_reduction_rate": 0.12753371658456242,
+      "mean_absolute_paired_gap_reduction": 0.01193235881535297,
+      "mean_absolute_paired_gap_reduction_rate": 0.12753371658456242
+    }
+  },
+  "seed_stability_std_change": {
+    "keras_accuracy": 0.007469697781855789,
+    "keras_macro_f1": 0.009874665275608475,
+    "pytorch_accuracy": 0.0038577074971169393,
+    "pytorch_macro_f1": 0.005563416340817416
+  },
+  "figures": [
+    "results/figures/keras_3seed_loss.png",
+    "results/figures/keras_3seed_accuracy.png",
+    "results/figures/pytorch_3seed_loss.png",
+    "results/figures/pytorch_3seed_accuracy.png",
+    "results/figures/validation_loss_3seed_comparison.png",
+    "results/figures/validation_accuracy_3seed_comparison.png"
+  ]
+}

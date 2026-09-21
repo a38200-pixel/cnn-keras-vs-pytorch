@@ -1,0 +1,71 @@
+{
+  "status": "PASS",
+  "mode": "strict_sample_id",
+  "dataset_counts": {
+    "train": 10251,
+    "val": 2194,
+    "test": 2203
+  },
+  "seed_dry_runtime_hashes": {
+    "42": "e0f67627ada77d382568a9294775b1de494c08da729eb579b7dce88cdfb86b7b",
+    "123": "7d04b02239dd691010ce7d83bbe400b92da289b34f5c2d77d0d2616c46a260ed",
+    "2026": "3e92fefbe0a59d5dd39c86ec4703b6b3e61493e99f0657876cc7c101efa0ac5b"
+  },
+  "epoch_schedule_mapping": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29
+  ],
+  "runtime_logging_path_tested": true,
+  "configuration_fingerprint": {
+    "branch_source": "00_baseline_final_cnn_3seed",
+    "changed_variable": "augmentation_only",
+    "model": "Conv(32,64,128,256)-BN-ReLU-MaxPool-GAP-Dense128-Dense8",
+    "batch_size": 32,
+    "max_epochs": 30,
+    "optimizer": "Adam(beta_1=0.9,beta_2=0.999,epsilon=1e-7,amsgrad=False)",
+    "learning_rate": 0.001,
+    "loss": "SparseCategoricalCrossentropy(from_logits=False)",
+    "batchnorm": "epsilon=1e-3,momentum=0.99",
+    "early_stopping": "val_loss,patience=7,min_delta=0.0001,restore_best",
+    "lr_scheduler": "val_loss,factor=0.5,patience=4,min_lr=1e-6",
+    "input": "TensorFlow decode_image RGB -> tf.image.resize bilinear -> model Rescaling(1/255)",
+    "shuffle": "Baseline Keras Sequence NumPy permutation(seed + lifecycle_epoch)",
+    "augmentation": "strict sample-ID; flip p=0.5 then Uniform[-5,+5] degree rotation; bilinear; constant 0",
+    "validation_test_augmentation": false
+  },
+  "model_output_shape": [
+    32,
+    8
+  ],
+  "model_parameters": 423784,
+  "tensorflow_gpu_detected": true,
+  "run_training": true
+}
