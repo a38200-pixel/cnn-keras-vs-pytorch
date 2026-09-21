@@ -1,0 +1,109 @@
+{
+  "experiment": "04_common_initialization_controlled_training",
+  "phase": "strict_controlled_comparison",
+  "status": "VALID",
+  "controlled_precheck": "VALID",
+  "checks": {
+    "dataset_match": true,
+    "class_mapping_match": true,
+    "canonical_sample_list": true,
+    "dtype_match": true,
+    "fixed_epoch": true,
+    "constant_learning_rate": true,
+    "early_stopping_disabled": true,
+    "scheduler_disabled": true,
+    "loss_config_match": true,
+    "adam_hyperparameter_match": true,
+    "batchnorm_config_match": true,
+    "native_shuffle_disabled": true,
+    "layer_config_seed42_block1": true,
+    "layer_config_seed42_block2": true,
+    "layer_config_seed42_block3": true,
+    "layer_config_seed42_block4": true,
+    "parameter_count_seed42": true,
+    "architecture_seed42": true,
+    "weight_dtype_seed42": true,
+    "layer_config_seed123_block1": true,
+    "layer_config_seed123_block2": true,
+    "layer_config_seed123_block3": true,
+    "layer_config_seed123_block4": true,
+    "parameter_count_seed123": true,
+    "architecture_seed123": true,
+    "weight_dtype_seed123": true,
+    "layer_config_seed2026_block1": true,
+    "layer_config_seed2026_block2": true,
+    "layer_config_seed2026_block3": true,
+    "layer_config_seed2026_block4": true,
+    "parameter_count_seed2026": true,
+    "architecture_seed2026": true,
+    "weight_dtype_seed2026": true,
+    "seed_initializations_distinct": true,
+    "initial_weight_exact": true,
+    "batch_order_match": true,
+    "augmentation_tensor_match": true,
+    "input_tensor_exact": true,
+    "labels_exact": true,
+    "keras_gpu": true,
+    "pytorch_mps": true,
+    "first_step_trace_available": true
+  },
+  "errors": [],
+  "dataset_counts": {
+    "train": 10251,
+    "val": 2194,
+    "test": 2203
+  },
+  "keras_trainable_parameters": 422824,
+  "pytorch_trainable_parameters": 422824,
+  "initial_weight_audits": {
+    "42": "preflight/seed42_initial_weight_audit.csv",
+    "123": "preflight/seed123_initial_weight_audit.csv",
+    "2026": "preflight/seed2026_initial_weight_audit.csv"
+  },
+  "weight_hashes_by_seed": {
+    "42": "f542c6536d6d7d69ec944f22a95c4dddf47e6cdd075c4340adb613b1cedd5fff",
+    "123": "ea9200b72ccd20bba7f9252569e9bb7a2e22a47ea81c71a6a4cdaedc54aaf877",
+    "2026": "5432cd04e8aa88919357954ba37afc13ad500cc8f21b54679e55020c242953a4"
+  },
+  "input_tensor_audit": "preflight/input_tensor_audit.json",
+  "keras_gpu_devices": [
+    "PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')"
+  ],
+  "pytorch_device": "mps",
+  "config": {
+    "experiment": "04_common_initialization_controlled_training",
+    "phase": "strict_controlled_comparison",
+    "seeds": [
+      42,
+      123,
+      2026
+    ],
+    "image_size": 128,
+    "batch_size": 32,
+    "epochs": 30,
+    "dtype": "float32",
+    "classes": 8,
+    "loss": "integer-label mean cross-entropy from raw logits",
+    "adam": {
+      "lr": 0.001,
+      "beta1": 0.9,
+      "beta2": 0.999,
+      "epsilon": 1e-07,
+      "weight_decay": 0.0,
+      "amsgrad": false,
+      "gradient_clipping": null
+    },
+    "batchnorm": {
+      "epsilon": 0.001,
+      "keras_momentum": 0.99,
+      "pytorch_momentum": 0.01
+    },
+    "augmentation": "common PIL flip p=.5 then rotation Uniform[-5,5] bilinear fill=0",
+    "shuffle": "persisted NumPy permutations; framework-native shuffle=False",
+    "early_stopping": false,
+    "lr_scheduler": false,
+    "dropout": false,
+    "mixed_precision": false
+  },
+  "full_training_executed": false
+}

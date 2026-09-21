@@ -1,0 +1,14 @@
+{
+  "seed": 123,
+  "keras_iteration": 1,
+  "pytorch_step": 1,
+  "learning_rate": 0.001,
+  "beta1": 0.9,
+  "beta2": 0.999,
+  "epsilon": 1e-07,
+  "weight_decay": 0.0,
+  "amsgrad": false,
+  "config_sha256": "341720f5354faa891046710944552ede8c015232e02747d4076952bd2142750f",
+  "keras_slot_mapping": "variable.path -> <path_with_underscores>_momentum/_velocity; verified names/shapes",
+  "pytorch_slot_mapping": "named_parameters -> exp_avg/exp_avg_sq; verified state/shape"
+}

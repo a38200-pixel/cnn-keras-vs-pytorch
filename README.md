@@ -1,10 +1,10 @@
 # Keras vs PyTorch CNN Framework Difference Analysis
 
-## 동일 CNN 아키텍처의 성능 차이 재현성 및 원인 분석
+## 동일 출발점에서 CNN 학습 과정의 Framework별 수치 분기 추적
 
 ### 1. 프로젝트 개요
 
-기존 어린이 얼굴 감정 분류 프로젝트에서 동일한 최종 CNN을 Keras와 PyTorch로 구현했을 때 관찰된 성능 차이가 재현되는지 확인하고, 그 원인을 통제 실험으로 추적하는 연구형 프로젝트다. 핵심은 “어느 framework가 항상 우수한가”가 아니라 기존 결과에 의문을 제기하고 재현성, 구현 차이, 수치 차이를 분리해 검증하는 데 있다. 기존 두 notebook은 수정하지 않은 연구 기록이며 신규 실험은 모두 `.py`로 작성했다.
+기존 어린이 얼굴 감정 분류 프로젝트에서 동일한 최종 CNN의 Keras/PyTorch 성능 차이를 관찰했다. 00–03에서는 Framework별 native 조건을 탐색했고, 04부터는 동일한 W0·입력·배치·증강 결과 등 외부 조건을 통제해 **Forward → Loss → Gradient → Optimizer Update → BN State → 학습 trajectory 중 어디서 처음 수치적으로 달라지는지** 추적한다. 목적은 어느 Framework가 본질적으로 우수한지 순위를 매기는 것이 아니다. 기존 두 notebook과 00–03 결과는 보존한다.
 
 ### Experimental Environment
 
@@ -25,13 +25,13 @@ TensorFlow 2.21.0과 tensorflow-metal 조합에서는 `libmetal_plugin.dylib` / 
 
 ### 2. 연구 배경
 
-기존 단일 Seed 실험에서는 Keras와 PyTorch 사이에 성능 차이가 관찰됐다. 그러나 deep learning 결과는 random initialization, data order, augmentation, optimizer와 framework 내부 구현의 영향을 함께 받으므로 단일 실행만으로 framework 효과라고 결론 내릴 수 없다. 이에 3-Seed 재현성 확인 → 원인 가설 설정 → 변수별 독립 통제 → layer-level numerical diagnosis 순서로 후속 연구를 설계했다.
+기존 단일 Seed 실험에서는 Keras와 PyTorch 사이에 성능 차이가 관찰됐다. 그러나 random initialization, data order, augmentation, optimizer와 framework 내부 구현의 영향을 단일 실행으로 분리할 수 없다. 00–03은 native 차이를 하나씩 살핀 preliminary OFAT이고, 04부터는 공통 초기 상태·입력·update 수에서 실제 학습 연산의 수치 분기를 추적한다.
 
 ```text
-기존 CNN 구현 → 성능 차이 발견 → 단일 Seed 한계 인식
-→ 3-Seed 재현성 실험 → 원인 가설 수립 → 변수별 독립 실험
-→ Baseline 대비 gap 분석 → Layer-by-Layer 진단
-→ 가설 평가 → 한계 및 후속 연구
+기존 CNN 구현 → Phase 1: 00–03 native/OFAT preliminary comparison
+→ Phase 2: 04 common W0·input·batch·augmentation controlled baseline
+→ 05–09 forward/loss/gradient/update/BN/multi-step/layer trajectory 분석
+→ fixed Epoch 30 성능을 마지막 결과로 해석
 ```
 
 ### 3. Baseline 정의
@@ -56,24 +56,24 @@ Notebook의 최종 코드와 사용자 제공 설정은 구조, RGB 입력, batc
 
 ### 4. 연구 목적
 
-1. 기존 gap이 Seed 변경 후에도 반복되는지 확인한다.
-2. 반복된다면 framework별 구현 차이를 하나씩 독립 통제해 각 요소의 영향을 분석한다.
-3. framework 자체 차이와 framework를 사용하는 과정에서 생긴 구현 차이를 구분한다.
-4. 동일 입력/weight 조건에서 forward 또는 학습 차이가 최초로 커지는 layer를 추적한다.
+1. 기존 성능 차이의 3-Seed 재현성과 native 구현 조건을 탐색한다(Phase 1).
+2. 동일한 초기 가중치·입력 tensor·batch/augmentation schedule·update 수를 확립한다(Phase 2).
+3. Forward, Loss, Gradient, Adam update, BN state 중 첫 수치 차이와 그 크기를 추적한다.
+4. 그 차이가 고정 Epoch 30의 Accuracy/Macro F1과 어떻게 연결되는지 검토한다.
 
 ### 5. Research Questions
 
 - **RQ1:** 기존 성능 차이는 Seed 42, 123, 2026에서 일관되게 반복되는가?
-- **RQ2:** Input Tensor, Batch Order, Augmentation, Initial Weight, Output/Loss, Adam, BatchNorm, EarlyStopping/LR Scheduler 중 무엇이 gap에 영향을 주는가?
-- **RQ3:** 각 요소를 개별 정렬했을 때 baseline 대비 gap은 얼마나 증가하거나 감소하는가?
-- **RQ4:** 동일 input/weight의 layer 비교에서 numerical output은 어디부터 의미 있게 달라지는가?
+- **RQ2:** Phase 1에서 Input Tensor·Batch Order·Augmentation 조건을 개별 정렬하면 native 성능 Gap은 어떻게 바뀌는가?
+- **RQ3:** Phase 2의 동일 W0·입력·batch에서 어느 연산부터 numerical difference가 관찰되는가?
+- **RQ4:** 첫 차이가 gradient/update/BN state와 30-epoch trajectory·최종 성능에서 어떻게 나타나는가?
 
 ### 6. Hypotheses
 
 - **H0 — Null:** 관찰된 차이는 stochastic variation 범위이며 3-Seed에서 일관된 framework gap이 나타나지 않을 것이다.
 - **H1 — Reproducibility:** 주요 구조와 hyperparameter가 같아도 framework-specific 구현 차이로 여러 Seed에서 같은 방향의 gap이 반복될 수 있다.
-- **H2 — Single-Factor Alignment:** 주요 원인인 구현 요소 하나를 정렬하면 baseline 대비 gap이 유의미하게 감소할 것이다.
-- **H3 — Layer-Level Difference:** 동일 input과 initial weight에서도 내부 연산 차이가 있다면 특정 연산 이후 numerical difference가 점진적으로 증가할 것이다.
+- **H2 — Phase 1 Single-Factor Alignment:** 01–03의 개별 조건 정렬은 Baseline 대비 성능 Gap에 영향을 줄 수 있다.
+- **H3 — Phase 2 Numerical Divergence:** 동일 W0·input·label에서도 native 연산 이후 작은 numerical difference가 처음 관찰될 수 있으며, 이후 update·trajectory에서 변화할 수 있다. 첫 비영 차이를 곧바로 실용적으로 유의한 분기로 해석하지 않는다.
 
 ### 7. Dataset
 
@@ -115,15 +115,17 @@ Keras는 `padding="same"`, PyTorch는 `padding=1`을 사용한다.
 
 ### 9. Experimental Methodology
 
-본 연구에서는 Keras와 PyTorch 사이의 구현 차이를 하나씩 독립적으로 동일화하는 **OFAT(One-Factor-at-a-Time) 기반 ablation-style controlled experiment**를 수행한다. 이는 model layer 제거 실험이 아니라 implementation factor alignment 연구다. 모든 성능 실험은 Keras 3회 + PyTorch 3회이며 주 지표는 Macro F1이다.
+**Phase 1 (00–03)**은 Framework별 native 조건을 보존하거나 한 요인씩 정렬하는 preliminary OFAT다. **Phase 2 (04–09)**는 여러 외부 조건을 동시에 고정하는 strict controlled comparison이다. 04는 Phase 1 OFAT 표의 다음 행이 아니라 새로운 controlled baseline이다. 04부터 Accuracy/F1보다 W0→입력→activation→loss→gradient→update→BN state 순서를 먼저 분석한다.
 
 Seed별 Gap은 `PyTorch metric_seed − Keras metric_seed`로 정의한다. `Signed Mean Gap = mean(Gap_seed)`은 평균 우위 방향을, `Mean Absolute Paired Gap = mean(abs(Gap_seed))`은 Seed별 차이의 평균 크기를 나타낸다. 각 지표의 Gap Reduction은 `baseline gap − current gap`으로 계산한다. 양수는 Gap 감소, 0 근처는 영향이 작음, 음수는 Gap 증가를 뜻하며 Baseline gap이 거의 0이면 reduction rate는 N/A다.
 
 ### 10. 왜 누적 통제를 사용하지 않았는가?
 
-누적 통제에서는 후반 변화가 방금 추가한 변수 때문인지 앞서 통제한 변수와의 interaction 때문인지 구분하기 어렵다. 따라서 각 실험은 언제나 Final CNN Baseline으로 돌아가 한 요소만 바꾸며 다른 branch의 정렬을 이어받지 않는다. OFAT은 개별 후보를 선별하는 대신 변수 간 interaction을 직접 측정하지 못한다.
+이 원칙은 **Phase 1의 01–03에만** 적용된다. 각 branch가 00 Baseline으로 돌아가 한 요소만 정렬하므로 그 결과는 누적 실험이 아니다. Phase 2는 다른 질문—동일 출발점에서 첫 수치 분기 위치—에 답하기 위해 여러 조건을 동시에 고정한다. 03에서 augmentation stochastic parameter를 맞춘 뒤에도 Seed별 결과와 학습 dynamics가 달랐으므로, 04에서는 W0를 포함한 공통 초기 상태를 먼저 확립한다.
 
 ### 11. Experiment Plan
+
+#### Phase 1 - Native / Preliminary Framework Comparison
 
 | ID | Experiment | Baseline 대비 변경 변수 | Seeds | 목적 |
 |---|---|---|---|---|
@@ -131,12 +133,17 @@ Seed별 Gap은 `PyTorch metric_seed − Keras metric_seed`로 정의한다. `Sig
 | 01 | Input Tensor Alignment | Input Tensor | 42, 123, 2026 | 입력 처리 영향 확인 |
 | 02 | Batch Order Alignment | Batch Order | 42, 123, 2026 | Mini-batch 순서 영향 확인 |
 | 03 | Augmentation Alignment | Augmentation | 42, 123, 2026 | 증강 구현 영향 확인 |
-| 04 | Initial Weight Alignment | Initial Weight | 42, 123, 2026 | 초기화 영향 확인 |
-| 05 | Output / Loss Alignment | Output / Loss | 42, 123, 2026 | Loss 계산 방식 영향 확인 |
-| 06 | Adam Alignment | Adam | 42, 123, 2026 | Optimizer 설정 영향 확인 |
-| 07 | BatchNorm Alignment | BatchNorm | 42, 123, 2026 | BN 동작 차이 영향 확인 |
-| 08 | EarlyStopping / LR Scheduler Alignment | Callback / Scheduler | 42, 123, 2026 | 종료/LR 정책 영향 확인 |
-| 09 | Layer-by-Layer Analysis | Numerical Diagnostic | 42, 123, 2026 | Layer별 numerical difference 추적 |
+
+#### Phase 2 - Strict Controlled Framework Comparison
+
+| ID | Experiment | Status | Primary focus |
+|---|---|---|---|
+| 04 | [Common Initialization & Controlled Training](experiments/04_common_initialization_controlled_training/README.md) | Extended diagnostic VALID / Full Training Pending | W0·입력 exact, first-step Adam/reference 진단, 독립 0–100-step trajectory, fixed Epoch 30 baseline |
+| 05 | Forward & Loss Divergence Analysis | Placeholder | Activation·logits·native/reference CE |
+| 06 | Gradient & Optimizer Update Divergence | Placeholder | Gradient와 native Adam update |
+| 07 | BatchNorm State Divergence | Placeholder | BN output/running state |
+| 08 | Multi-Step / Epoch-Level Divergence | Placeholder | update·epoch trajectory |
+| 09 | Layer-by-Layer Training Trajectory | Placeholder | 저장된 checkpoint별 layer 비교 |
 
 ### 12. Experiment Progress
 
@@ -148,12 +155,12 @@ Seed별 Gap은 `PyTorch metric_seed − Keras metric_seed`로 정의한다. `Sig
 | 01 | Input Tensor | 완료, Input equality/GPU sanity 통과 | 완료 | Baseline 비교 및 history 분석 완료 |
 | 02 | Batch Order | Attempt 1 Invalid / Bug Fix 완료 | Attempt 2 VALID / 3-Seed 완료 | Runtime 검증 및 Baseline 분석 완료 |
 | 03 | Augmentation | 구현 완료, strict sample-ID runtime 검증 | 3-Seed 완료 | VALID / Baseline 비교 및 history 분석 완료 |
-| 04 | Initial Weight | 대기 | 대기 | 대기 |
-| 05 | Output / Loss | 대기 | 대기 | 대기 |
-| 06 | Adam | 대기 | 대기 | 대기 |
-| 07 | BatchNorm | 대기 | 대기 | 대기 |
-| 08 | Callback / Scheduler | 대기 | 대기 | 대기 |
-| 09 | Layer-by-Layer | 초기 GPU sanity 완료 | 대기 | 본 분석 대기 |
+| 04 | Common Initialization & Controlled Training | 구현 완료 / 3 gate VALID / first-step·100-step 진단 완료 | 대기 | W0·input exact, 첫 비영 BN1 차이 관찰; checkpoint round-trip PASS |
+| 05 | Forward & Loss Divergence | Placeholder | 대기 | 대기 |
+| 06 | Gradient & Optimizer Update Divergence | Placeholder | 대기 | 대기 |
+| 07 | BatchNorm State Divergence | Placeholder | 대기 | 대기 |
+| 08 | Multi-Step / Epoch-Level Divergence | Placeholder | 대기 | 대기 |
+| 09 | Layer-by-Layer Training Trajectory | Placeholder | 대기 | 대기 |
 
 ### 13. Baseline 3-Seed Results
 
@@ -164,10 +171,10 @@ Seed별 Gap은 `PyTorch metric_seed − Keras metric_seed`로 정의한다. `Sig
 | Macro F1 | 45.84 ± 2.45% | **50.08 ± 0.23%** | **+4.23%p** |
 | Test Loss | 1.3669 ± 0.0404 | **1.2733 ± 0.0181** | -0.0936 |
 
-세 Seed 모두 PyTorch가 Keras보다 높은 Accuracy와 Macro F1을 기록했다. 다만 이 결과를 framework 자체의 우월성으로 해석하지 않고, 01~08 OFAT 분석에서 구현 차이를 하나씩 통제해 원인을 검증한다. 상세 결과는 [Experiment 00 README](experiments/00_baseline_final_cnn_3seed/README.md)에 기록했다.
+세 Seed 모두 PyTorch가 Keras보다 높은 Accuracy와 Macro F1을 기록했다. 다만 이 결과를 framework 자체의 우월성으로 해석하지 않는다. 01–03은 native 조건의 개별 정렬을 탐색하며, 04부터는 동일 출발점의 수치 분기를 추적한다. 상세 결과는 [Experiment 00 README](experiments/00_baseline_final_cnn_3seed/README.md)에 기록했다.
 <!-- BASELINE_RESULTS_END -->
 
-### 14. Single-Factor Ablation Results
+### 14. Phase 1 Preliminary / Single-Factor Results
 
 <!-- ABLATION_RESULTS_START -->
 | Experiment | Aligned Variable | Keras F1 | PyTorch F1 | Signed Mean Gap | Mean Absolute Paired Gap | Status |
@@ -176,11 +183,6 @@ Seed별 Gap은 `PyTorch metric_seed − Keras metric_seed`로 정의한다. `Sig
 | 01 Input | Input Tensor | 46.46% | 48.66% | 2.20%p | 3.91%p | Completed |
 | 02 Batch | Batch Order | 46.73% | 48.05% | 1.32%p | 3.17%p | Attempt 2 VALID |
 | 03 Augmentation | Augmentation | 43.15% | 45.46% | 2.31%p | 3.65%p | VALID |
-| 04 Weight | Initial Weight | - | - | - | - | Pending |
-| 05 Loss | Output / Loss | - | - | - | - | Pending |
-| 06 Adam | Adam | - | - | - | - | Pending |
-| 07 BatchNorm | BatchNorm | - | - | - | - | Pending |
-| 08 Callback | ES / LR Scheduler | - | - | - | - | Pending |
 <!-- ABLATION_RESULTS_END -->
 
 Signed Mean Gap은 `mean(PyTorch - Keras)`, Mean Absolute Paired Gap은 `mean(abs(PyTorch - Keras))`다. Seed별 우위 방향이 바뀌면 signed 값이 상쇄될 수 있으므로 두 값을 함께 본다. Experiment 01–03은 서로 독립적인 Baseline branch다.
@@ -189,10 +191,12 @@ Experiment 02 Attempt 1은 실제 order mismatch로 archive에 보존하고 공�
 
 Experiment 03은 strict sample-ID runtime augmentation validation이 `VALID`다. 공통 수행 epoch의 sample별 flip·rotation parameter hash가 모두 일치했지만, Framework별 회전 연산 결과가 pixel-exact라는 뜻은 아니다. 위 03 행은 실제 유효한 3-Seed 결과를 사용한다.
 
-### 15. Layer-by-Layer Results
+### 15. Phase 2 Controlled Numerical Diagnostics
 
 <!-- LAYER_RESULTS_START -->
-> 아직 학습하지 않음. Initial/one-step 진단도 사용자가 명시적으로 실행한 뒤 갱신한다.
+Experiment 04의 [사전 검증과 첫 step 진단](experiments/04_common_initialization_controlled_training/README.md)은 완료됐다. 세 Seed 모두 canonical W0·입력·label과 Conv1 출력이 exact match이고, 첫 비영 수치 차이는 BN1 출력에서 관찰됐다. 이는 첫 *비영* 위치이지 실용적으로 유의한 divergence의 증거는 아니다. 30-epoch 학습과 최종 Test 결과는 **Training Pending**이다.
+
+확장 진단은 gradient/update 분포, native Adam m/v와 NumPy reference Adam, 독립된 0–100-step weight trajectory를 기록했다. Canonical checkpoint의 model·optimizer state hash 및 fresh-model load round-trip도 통과했다. 이 진단은 Full Training 결과가 아니다.
 <!-- LAYER_RESULTS_END -->
 
 ### 16. 주요 발견
@@ -203,7 +207,7 @@ Experiment 01에서 augmentation 이전 deterministic input preprocessing을 동
 
 Experiment 02 Attempt 1은 Keras lifecycle bug로 무효 처리하고 archive에만 보존했다. 수정 후 Attempt 2는 runtime order validation을 통과했다. 공식 결과에서 Macro F1 Signed Mean Gap은 4.23%p에서 1.32%p로 68.87% 감소했고, Mean Absolute Paired Gap은 4.23%p에서 3.17%p로 25.18% 감소했다. Baseline의 세 Seed 모두 PyTorch 우위였던 방향도 Keras/PyTorch/Keras로 바뀌었다. 다만 Seed 123의 Macro F1 Gap은 +6.73%p였고 양쪽 Seed 변동성이 증가했으므로 Batch Order를 단독 원인으로 보지 않는다. 상세 결과는 [Experiment 02 README](experiments/02_batch_order_alignment/README.md)에 정리했다.
 
-Experiment 03의 유효한 Augmentation Alignment에서는 Macro F1 Signed Mean Gap이 4.23→2.31%p로 45.52% 감소했으나 Mean Absolute Paired Gap은 4.23→3.65%p로 13.71% 감소했다. Seed 2026에서는 Keras가 역전했고 Seed 123에는 +6.40%p Gap이 남았다. 양쪽 Framework의 평균 Accuracy와 F1도 Baseline보다 낮아져 Gap 감소를 성능 향상으로 해석할 수 없다. 현재까지 독립 branch 중 02가 가장 큰 Seed-level absolute F1 Gap 감소를 보였지만 04–08 결과 전에는 주요 원인으로 확정하지 않는다. [Experiment 03 README](experiments/03_augmentation_alignment/README.md)에 runtime·history·한계를 기록했다.
+Experiment 03의 유효한 Augmentation Alignment에서는 Macro F1 Signed Mean Gap이 4.23→2.31%p로 45.52% 감소했으나 Mean Absolute Paired Gap은 4.23→3.65%p로 13.71% 감소했다. Seed 2026에서는 Keras가 역전했고 Seed 123에는 +6.40%p Gap이 남았다. 양쪽 Framework의 평균 Accuracy와 F1도 Baseline보다 낮아져 Gap 감소를 성능 향상으로 해석할 수 없다. Phase 1의 독립 branch 중 02가 가장 큰 Seed-level absolute F1 Gap 감소를 보였지만 이를 주요 원인으로 확정하지 않는다. [Experiment 03 README](experiments/03_augmentation_alignment/README.md)에 runtime·history·한계를 기록했다.
 
 - Seed마다 우위가 바뀌면 framework 효과보다 stochastic variation이 큰 것으로 보고 H0를 기각하지 않는다.
 - 세 Seed에서 같은 방향의 gap이 반복되면 H1을 검토할 재현성 근거로 사용한다.
@@ -217,9 +221,9 @@ Experiment 03의 유효한 Augmentation Alignment에서는 Macro F1 Signed Mean 
 | Hypothesis | Result | Evidence |
 |---|---|---|
 | H0 | 근거 약화 | 3 Seed 모두 같은 방향의 Accuracy/Macro F1 Gap이 관찰됨. 3 Seed만으로 통계적 기각을 주장하지 않음 |
-| H1 | 추가 분석 근거 확보 | 반복 가능한 Framework Gap이 관찰되어 01~08 원인 분석을 진행함 |
+| H1 | 추가 분석 근거 확보 | 반복 가능한 Framework Gap이 관찰되어 Phase 1 탐색과 Phase 2 통제 실험을 진행함 |
 | H2 | 부분 지지 | Input, Batch Order, Augmentation 독립 branch 모두 Baseline 대비 F1 Gap 감소 방향. 03은 signed 45.52%, mean absolute paired 13.71% 감소했으나 양쪽 절대 성능 하락·Seed 분산 증가가 동반됨. 단독 원인으로 확정하지 않음 |
-| H3 | Pending | - |
+| H3 | 첫 step 진단 완료 / 장기 결과 Pending | W0·입력·Conv1 exact, BN1 출력부터 비영 차이 관찰. 30-epoch trajectory와 성능은 미실행 |
 <!-- HYPOTHESIS_RESULTS_END -->
 
 ### 18. Conclusion
@@ -239,14 +243,15 @@ Experiment 03의 유효한 Augmentation Alignment에서는 Macro F1 Signed Mean 
 
 ### 20. Future Work
 
-유력 변수 조합의 factorial 실험, 모든 조건을 함께 맞춘 Full Alignment, 더 많은 Seed/architecture/dataset, 시계열 얼굴 표현을 위한 Conv3D 후속 연구로 확장할 수 있다.
+Phase 2의 30-epoch 학습과 05–09 수치 분기 분석 후, 더 많은 Seed·architecture·dataset 및 변수 조합의 factorial 실험으로 확장할 수 있다.
 
 ### 21. Project Structure
 
 ```text
-common/                 dataset/seed/result/alignment 유틸리티
-experiments/00...08/    독립 성능 실험: keras.py, pytorch.py, compare.py, README.md
-experiments/09.../      initial, one-step, trained, 3-seed layer 진단
+common/                 Phase 1 유틸리티 + Phase 2 canonical config/data/W0/training 유틸리티
+experiments/00...03/    Phase 1 native/preliminary 실험 및 보존된 결과
+experiments/04_common_initialization_controlled_training/  Phase 2 controlled baseline·preflight·first-step
+experiments/05...09/    Phase 2 divergence roadmap placeholder
 scripts/                 학습 없는 실행환경/GPU 검증
 summary/                 전체 집계 및 README marker 갱신
 emotion_dataset/         물리적 train/val/test × 8 classes (Git 제외)
@@ -280,7 +285,7 @@ python -m pip install -r requirements.txt
 .venv-metal/bin/python experiments/00_baseline_final_cnn_3seed/pytorch.py
 ```
 
-학습할 때만 대상 `keras.py` 또는 `pytorch.py` 상단의 `RUN_TRAINING = False`를 `True`로 바꾼다. 먼저 00의 Keras/PyTorch를 실행하고 `compare.py`, 이후 01–08을 각각 실행한다. 한 파일은 세 Seed를 순차 학습한다.
+00–03은 완료된 Phase 1 결과이며 재실행할 필요가 없다. 각 Phase 1 학습 파일은 `RUN_TRAINING`을 켤 때만 세 Seed를 순차 학습한다. 04는 별도 Phase 2 실험으로, 아래 사전 검증과 첫-step 진단은 전체 학습을 시작하지 않는다.
 
 ```bash
 .venv-metal/bin/python experiments/00_baseline_final_cnn_3seed/compare.py
@@ -291,4 +296,16 @@ python -m pip install -r requirements.txt
 .venv-metal/bin/python summary/update_readme.py
 ```
 
-결과가 없으면 비교 도구는 `Experiment results were not found. Run the training scripts first.`를 출력하며 가짜 값을 만들지 않는다. `update_readme.py`는 위 네 marker 내부만 바꾸고 연구 서술은 보존한다.
+Phase 1 집계 도구는 00–03 결과만 다룬다. 04는 다음 경로를 사용한다. 현재 두 training script의 `RUN_TRAINING = False`는 그대로 유지하며, 실제 30-epoch 학습은 사용자가 각 파일에서 이를 `True`로 바꾼 후에만 시작된다.
+
+```bash
+.venv-metal/bin/python experiments/04_common_initialization_controlled_training/first_step_trace.py
+.venv-metal/bin/python experiments/04_common_initialization_controlled_training/early_step_trace.py
+.venv-metal/bin/python experiments/04_common_initialization_controlled_training/checkpoint_roundtrip.py
+.venv-metal/bin/python experiments/04_common_initialization_controlled_training/preflight_validate.py
+.venv-metal/bin/python experiments/04_common_initialization_controlled_training/keras_controlled_train.py
+.venv-metal/bin/python experiments/04_common_initialization_controlled_training/pytorch_controlled_train.py
+.venv-metal/bin/python experiments/04_common_initialization_controlled_training/compare_controlled.py
+```
+
+사전 검증은 `CONTROLLED_PRECHECK=VALID`를 확인한다. 첫-step 진단은 full training result가 아니다. 학습 전 `compare_controlled.py`는 최종 결과를 생성하지 않고 Pending 상태를 알린다.

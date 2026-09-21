@@ -1,0 +1,10 @@
+{
+  "seed": 2026,
+  "labels_hash": "627bd3b11a85513103ac418c3d94515d257747592b61a45f1155c2f49b21e909",
+  "input_hash": "02a96409878704d738a8936f83557b9d14f9da02b092ea3aa50690b81a4afb13",
+  "weight_hash": "5432cd04e8aa88919357954ba37afc13ad500cc8f21b54679e55020c242953a4",
+  "keras_native_loss": 2.098849296569824,
+  "pytorch_native_loss": 2.098849296569824,
+  "numpy_reference_loss_from_keras_logits": 2.09884936821251,
+  "numpy_reference_loss_from_pytorch_logits": 2.098849421228808
+}

@@ -1,0 +1,88 @@
+{
+  "config_sha256": "341720f5354faa891046710944552ede8c015232e02747d4076952bd2142750f",
+  "n_seeds": 3,
+  "significance_claim": false,
+  "by_seed": {
+    "42": {
+      "first_nonzero_forward_layer": "bn1",
+      "largest_gradient_relative_l2": {
+        "parameter": "bn2/gamma",
+        "value": 0.002369756785617186
+      },
+      "largest_gradient_max_diff": {
+        "parameter": "conv4/kernel",
+        "value": 0.0005682839546352625
+      },
+      "largest_update_relative_l2": {
+        "parameter": "conv1/kernel",
+        "value": 0.06740830817884555
+      },
+      "largest_update_max_diff": {
+        "parameter": "conv4/kernel",
+        "value": 0.0019819196313619614
+      },
+      "largest_m_relative_l2": {
+        "parameter": "bn2/gamma",
+        "value": 0.0023697523311705087
+      },
+      "largest_v_relative_l2": {
+        "parameter": "bn2/gamma",
+        "value": 0.003464469189898578
+      }
+    },
+    "123": {
+      "first_nonzero_forward_layer": "bn1",
+      "largest_gradient_relative_l2": {
+        "parameter": "conv1/kernel",
+        "value": 9.125779381003707e-05
+      },
+      "largest_gradient_max_diff": {
+        "parameter": "conv1/kernel",
+        "value": 4.766881465911865e-05
+      },
+      "largest_update_relative_l2": {
+        "parameter": "conv4/kernel",
+        "value": 0.026923278304224838
+      },
+      "largest_update_max_diff": {
+        "parameter": "conv3/kernel",
+        "value": 0.000712178647518158
+      },
+      "largest_m_relative_l2": {
+        "parameter": "conv1/kernel",
+        "value": 9.12587690703555e-05
+      },
+      "largest_v_relative_l2": {
+        "parameter": "conv1/kernel",
+        "value": 0.00015727620660959017
+      }
+    },
+    "2026": {
+      "first_nonzero_forward_layer": "bn1",
+      "largest_gradient_relative_l2": {
+        "parameter": "conv1/kernel",
+        "value": 0.00012878340721610571
+      },
+      "largest_gradient_max_diff": {
+        "parameter": "conv1/kernel",
+        "value": 3.557279706001282e-05
+      },
+      "largest_update_relative_l2": {
+        "parameter": "conv1/kernel",
+        "value": 0.04258956279954362
+      },
+      "largest_update_max_diff": {
+        "parameter": "conv1/kernel",
+        "value": 0.0012096837162971497
+      },
+      "largest_m_relative_l2": {
+        "parameter": "conv1/kernel",
+        "value": 0.00012878084026815136
+      },
+      "largest_v_relative_l2": {
+        "parameter": "conv1/kernel",
+        "value": 0.0001966395954417499
+      }
+    }
+  }
+}

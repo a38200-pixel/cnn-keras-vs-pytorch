@@ -1,0 +1,37 @@
+{
+  "seed": 123,
+  "config_sha256": "341720f5354faa891046710944552ede8c015232e02747d4076952bd2142750f",
+  "initial_weight_exact": true,
+  "input_exact": true,
+  "conv1_exact": true,
+  "first_nonzero_forward_layer": "bn1",
+  "first_nonzero_forward_max_diff": 7.152557373046875e-07,
+  "loss_abs_diff": 0.0,
+  "largest_gradient_relative_l2": {
+    "parameter": "conv1/kernel",
+    "value": 9.125779381003707e-05
+  },
+  "largest_gradient_max_diff": {
+    "parameter": "conv1/kernel",
+    "value": 4.766881465911865e-05
+  },
+  "largest_update_relative_l2": {
+    "parameter": "conv4/kernel",
+    "value": 0.026923278304224838
+  },
+  "largest_update_max_diff": {
+    "parameter": "conv3/kernel",
+    "value": 0.000712178647518158
+  },
+  "largest_m_relative_l2": {
+    "parameter": "conv1/kernel",
+    "value": 9.12587690703555e-05
+  },
+  "largest_v_relative_l2": {
+    "parameter": "conv1/kernel",
+    "value": 0.00015727620660959017
+  },
+  "bn_state_max_abs_diff": 8.344650268554688e-07,
+  "nan_count": 0,
+  "inf_count": 0
+}

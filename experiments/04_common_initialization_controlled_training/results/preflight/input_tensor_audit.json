@@ -1,0 +1,56 @@
+{
+  "42": {
+    "shape": [
+      32,
+      128,
+      128,
+      3
+    ],
+    "dtype": "float32",
+    "min": 0.0,
+    "max": 1.0,
+    "mean": 0.39527690410614014,
+    "canonical_hash": "dbe19f39cf78626f8a5e4b94379f5a0d224c8c05517acf2820bcc3c6068bb105",
+    "keras_hash": "dbe19f39cf78626f8a5e4b94379f5a0d224c8c05517acf2820bcc3c6068bb105",
+    "pytorch_nhwc_hash": "dbe19f39cf78626f8a5e4b94379f5a0d224c8c05517acf2820bcc3c6068bb105",
+    "max_abs_diff": 0.0,
+    "label_hash": "194aec09998cf63696f7158f1417524d5dd99373cfa00b158f4898851e3dd798",
+    "labels_exact": true
+  },
+  "123": {
+    "shape": [
+      32,
+      128,
+      128,
+      3
+    ],
+    "dtype": "float32",
+    "min": 0.0,
+    "max": 1.0,
+    "mean": 0.4386751651763916,
+    "canonical_hash": "b1c8dc9f7b85306be28926b87b7b025134408b4d592f0bb8f591b56d5fcd63b1",
+    "keras_hash": "b1c8dc9f7b85306be28926b87b7b025134408b4d592f0bb8f591b56d5fcd63b1",
+    "pytorch_nhwc_hash": "b1c8dc9f7b85306be28926b87b7b025134408b4d592f0bb8f591b56d5fcd63b1",
+    "max_abs_diff": 0.0,
+    "label_hash": "f9c0cecdd5fb6ab200c5fc1c857a13ca6c21234edfb3cb87f8bbe2f940ed1f87",
+    "labels_exact": true
+  },
+  "2026": {
+    "shape": [
+      32,
+      128,
+      128,
+      3
+    ],
+    "dtype": "float32",
+    "min": 0.0,
+    "max": 1.0,
+    "mean": 0.45555761456489563,
+    "canonical_hash": "02a96409878704d738a8936f83557b9d14f9da02b092ea3aa50690b81a4afb13",
+    "keras_hash": "02a96409878704d738a8936f83557b9d14f9da02b092ea3aa50690b81a4afb13",
+    "pytorch_nhwc_hash": "02a96409878704d738a8936f83557b9d14f9da02b092ea3aa50690b81a4afb13",
+    "max_abs_diff": 0.0,
+    "label_hash": "627bd3b11a85513103ac418c3d94515d257747592b61a45f1155c2f49b21e909",
+    "labels_exact": true
+  }
+}

@@ -8,5 +8,7 @@ experiments/*/results/*.keras
 experiments/*/results/*.pt
 experiments/*/archive/**/*.keras
 experiments/*/archive/**/*.pt
+experiments/04_common_initialization_controlled_training/results/early_steps/checkpoints/
+experiments/04_common_initialization_controlled_training/results/checkpoints/
 !experiments/*/results/.gitkeep
 !summary/figures/.gitkeep

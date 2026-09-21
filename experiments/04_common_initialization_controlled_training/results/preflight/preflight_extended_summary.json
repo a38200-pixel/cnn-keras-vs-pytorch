@@ -1,0 +1,10 @@
+{
+  "controlled_precheck": "VALID",
+  "extended_diagnostic_status": "VALID",
+  "checkpoint_roundtrip": "VALID",
+  "full_training_ready": true,
+  "config_sha256": "341720f5354faa891046710944552ede8c015232e02747d4076952bd2142750f",
+  "errors": [],
+  "diagnostic_file_count": 34,
+  "full_training_executed": false
+}
