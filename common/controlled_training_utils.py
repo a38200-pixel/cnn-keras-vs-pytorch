@@ -12,6 +12,7 @@ import numpy as np
 
 from common.controlled_config import ALLOW_OVERWRITE, EXPERIMENT, PHASE, RESULTS, config_hash
 from common.controlled_checkpoint import verify_checkpoint
+from common.controlled_initialization import load_initial_weights
 
 HISTORY_FIELDS = [
     "framework", "experiment", "phase", "seed", "epoch", "train_loss",
@@ -30,14 +31,13 @@ RESULT_FIELDS = [
 ]
 
 
-def ensure_seed_available(framework: str, seed: int) -> None:
+def ensure_seed_available(framework: str, seed: int) -> bool:
     """Never silently resume or overwrite partial/full runs."""
     if ALLOW_OVERWRITE:
-        return
-    targets = [
-        RESULTS / "history" / f"{framework}_seed{seed}_history.csv",
-        RESULTS / "checkpoints" / f"seed{seed}" / framework,
-    ]
+        return False
+    history_path = RESULTS / "history" / f"{framework}_seed{seed}_history.csv"
+    checkpoint_dir = RESULTS / "checkpoints" / f"seed{seed}" / framework
+    targets = [history_path]
     result_path = RESULTS / f"{framework}_controlled_results.csv"
     if result_path.exists():
         with result_path.open(encoding="utf-8") as handle:
@@ -46,6 +46,27 @@ def ensure_seed_available(framework: str, seed: int) -> None:
     existing = [path for path in targets if path.exists()]
     if existing:
         raise FileExistsError(f"Seed artifacts exist; automatic resume/overwrite disabled: {existing}")
+    if not checkpoint_dir.exists():
+        return False
+    files = {path.name for path in checkpoint_dir.iterdir() if path.is_file()}
+    initial_files = {"initial.npz", "initial_optimizer.npz", "initial_metadata.json"}
+    if files != initial_files:
+        raise FileExistsError(f"Partial/full checkpoints exist; automatic resume disabled: {checkpoint_dir}")
+    model_state, optimizer_state = verify_checkpoint(
+        checkpoint_dir / "initial.npz", checkpoint_dir / "initial_optimizer.npz",
+        checkpoint_dir / "initial_metadata.json",
+    )
+    metadata = json.loads((checkpoint_dir / "initial_metadata.json").read_text(encoding="utf-8"))
+    canonical = load_initial_weights(seed)
+    exact_w0 = set(model_state) == set(canonical) and all(
+        np.array_equal(model_state[name], canonical[name]) for name in canonical
+    )
+    if (not exact_w0 or optimizer_state or metadata.get("optimizer_step") != 0
+            or metadata.get("checkpoint_name") != "initial"):
+        raise RuntimeError(f"Invalid initial-only checkpoint: {checkpoint_dir}")
+    # A crash before the first optimizer step is safe to restart from fresh W0.
+    print(f"Validated existing initial-only checkpoint; restarting seed {seed} from canonical W0.")
+    return True
 
 
 def write_history(framework: str, seed: int, rows: list[dict[str, object]]) -> Path:

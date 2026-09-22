@@ -1,0 +1,108 @@
+{
+  "phase": "strict_controlled_comparison",
+  "experiment_validity": "VALID",
+  "primary_checkpoint": "fixed_epoch_30",
+  "secondary_checkpoint": "best_validation_loss",
+  "first_step_diagnostic": {
+    "42": {
+      "first_nonzero_forward_layer": "bn1"
+    },
+    "123": {
+      "first_nonzero_forward_layer": "bn1"
+    },
+    "2026": {
+      "first_nonzero_forward_layer": "bn1"
+    }
+  },
+  "metrics": {
+    "final_test_accuracy": {
+      "keras_mean": 0.43349977303676807,
+      "keras_sample_std": 0.029776330476701283,
+      "pytorch_mean": 0.40656680284460583,
+      "pytorch_sample_std": 0.07321783676617352,
+      "paired_by_seed": {
+        "42": 0.009986382206082611,
+        "123": -0.011348161597821205,
+        "2026": -0.07943713118474804
+      },
+      "signed_mean_gap": -0.026932970192162214,
+      "mean_absolute_paired_gap": 0.03359055832955062
+    },
+    "final_macro_f1": {
+      "keras_mean": 0.39818090919633176,
+      "keras_sample_std": 0.04396845159950193,
+      "pytorch_mean": 0.3589072897659494,
+      "pytorch_sample_std": 0.08402324432166143,
+      "paired_by_seed": {
+        "42": 0.012787449819276486,
+        "123": -0.014351378611439203,
+        "2026": -0.11625692949898442
+      },
+      "signed_mean_gap": -0.03927361943038238,
+      "mean_absolute_paired_gap": 0.0477985859765667
+    },
+    "final_test_loss": {
+      "keras_mean": 1.694883469563783,
+      "keras_sample_std": 0.16200067949569388,
+      "pytorch_mean": 1.9501446092799746,
+      "pytorch_sample_std": 0.47799403195323764,
+      "paired_by_seed": {
+        "42": -0.060754939839345434,
+        "123": 0.20407926294947565,
+        "2026": 0.6224590960384446
+      },
+      "signed_mean_gap": 0.25526113971619163,
+      "mean_absolute_paired_gap": 0.2957644329424219
+    },
+    "best_test_accuracy": {
+      "keras_mean": 0.4928128309880466,
+      "keras_sample_std": 0.01136025985455954,
+      "pytorch_mean": 0.4940233015584809,
+      "pytorch_sample_std": 0.022860654892769817,
+      "paired_by_seed": {
+        "42": -0.025873808443032276,
+        "123": 0.002723558783477076,
+        "2026": 0.026781661370857968
+      },
+      "signed_mean_gap": 0.001210470570434256,
+      "mean_absolute_paired_gap": 0.01845967619912244
+    },
+    "best_macro_f1": {
+      "keras_mean": 0.4741369770127606,
+      "keras_sample_std": 0.004077503403724797,
+      "pytorch_mean": 0.47391429873471,
+      "pytorch_sample_std": 0.030227086928672875,
+      "paired_by_seed": {
+        "42": -0.029309675399123936,
+        "123": -0.0015047278078588189,
+        "2026": 0.030146368372831134
+      },
+      "signed_mean_gap": -0.00022267827805054022,
+      "mean_absolute_paired_gap": 0.020320257193271296
+    },
+    "best_test_loss": {
+      "keras_mean": 1.3413185873087892,
+      "keras_sample_std": 0.040722329557690964,
+      "pytorch_mean": 1.327811103163662,
+      "pytorch_sample_std": 0.03266132578126101,
+      "paired_by_seed": {
+        "42": 0.012805153551937343,
+        "123": -0.0308171727686537,
+        "2026": -0.022510433218666304
+      },
+      "signed_mean_gap": -0.013507484145127554,
+      "mean_absolute_paired_gap": 0.02204425317975245
+    }
+  },
+  "figures": [
+    "figures/controlled_validation_loss.png",
+    "figures/controlled_validation_accuracy.png"
+  ],
+  "trajectory_files": [
+    "trajectory/seed42_weight_trajectory.csv",
+    "trajectory/seed123_weight_trajectory.csv",
+    "trajectory/seed2026_weight_trajectory.csv"
+  ],
+  "config_sha256": "341720f5354faa891046710944552ede8c015232e02747d4076952bd2142750f",
+  "interpretation_note": "Phase 2 is not an OFAT gap-reduction continuation of 00\u201303."
+}

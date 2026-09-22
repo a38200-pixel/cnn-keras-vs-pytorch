@@ -29,7 +29,7 @@ from common.controlled_training_utils import (
 from common.environment_utils import select_torch_device
 from common.seed_utils import seed_pytorch
 
-RUN_TRAINING = False
+RUN_TRAINING = True
 
 
 def evaluate(model, rows, seed: int, device):
@@ -43,7 +43,7 @@ def evaluate(model, rows, seed: int, device):
     with torch.no_grad():
         for indices in iter_batches(np.arange(len(rows))):
             images, labels = canonical_batch(rows, indices, seed, 0, False)
-            x = torch.from_numpy(images.transpose(0, 3, 1).copy()).to(device)
+            x = torch.from_numpy(images.transpose(0, 3, 1, 2).copy()).to(device)
             y = torch.from_numpy(labels.astype(np.int64)).to(device)
             logits = model(x)
             loss = criterion(logits, y)
@@ -63,7 +63,7 @@ def train_seed(seed: int) -> None:
     import torch
 
     require_valid_preflight()
-    ensure_seed_available("pytorch", seed)
+    reuse_initial_checkpoint = ensure_seed_available("pytorch", seed)
     seed_pytorch(seed)
     torch.set_default_dtype(torch.float32)
     device = select_torch_device()
@@ -90,7 +90,7 @@ def train_seed(seed: int) -> None:
             "pytorch", seed, name, export_torch_weights(model), slots,
             epoch=epoch_number, optimizer_step=global_step,
         )
-    if SAVE_CANONICAL_CHECKPOINT and SAVE_INITIAL_CHECKPOINT:
+    if SAVE_CANONICAL_CHECKPOINT and SAVE_INITIAL_CHECKPOINT and not reuse_initial_checkpoint:
         checkpoint("initial", 0, 0)
     history = []
     best_loss, best_epoch, best_state = float("inf"), 0, None
@@ -102,7 +102,7 @@ def train_seed(seed: int) -> None:
         loss_sum = correct = count = 0
         for indices in iter_batches(order[epoch]):
             images, labels = canonical_batch(train, indices, seed, epoch, True)
-            x = torch.from_numpy(images.transpose(0, 3, 1).copy()).to(device)
+            x = torch.from_numpy(images.transpose(0, 3, 1, 2).copy()).to(device)
             y = torch.from_numpy(labels.astype(np.int64)).to(device)
             optimizer.zero_grad(set_to_none=True)
             logits = model(x)

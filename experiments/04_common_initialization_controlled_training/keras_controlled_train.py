@@ -27,7 +27,7 @@ from common.controlled_training_utils import (
 )
 from common.seed_utils import seed_tensorflow
 
-RUN_TRAINING = False
+RUN_TRAINING = True
 
 
 def evaluate(model, rows, seed: int):
@@ -57,7 +57,7 @@ def train_seed(seed: int) -> None:
     import tensorflow as tf
 
     require_valid_preflight()
-    ensure_seed_available("keras", seed)
+    reuse_initial_checkpoint = ensure_seed_available("keras", seed)
     tf.keras.backend.clear_session()
     tf.keras.backend.set_floatx("float32")
     seed_tensorflow(seed)
@@ -85,7 +85,7 @@ def train_seed(seed: int) -> None:
             "keras", seed, name, export_keras_weights(model), slots,
             epoch=epoch_number, optimizer_step=global_step,
         )
-    if SAVE_CANONICAL_CHECKPOINT and SAVE_INITIAL_CHECKPOINT:
+    if SAVE_CANONICAL_CHECKPOINT and SAVE_INITIAL_CHECKPOINT and not reuse_initial_checkpoint:
         checkpoint("initial", 0, 0)
     history = []
     best_loss, best_epoch, best_weights = float("inf"), 0, None
