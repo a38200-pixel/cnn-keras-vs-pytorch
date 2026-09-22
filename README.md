@@ -138,10 +138,10 @@ Seed별 Gap은 `PyTorch metric_seed − Keras metric_seed`로 정의한다. `Sig
 
 | ID | Experiment | Status | Primary focus |
 |---|---|---|---|
-| 04 | [Common Initialization & Controlled Training](experiments/04_common_initialization_controlled_training/README.md) | Extended diagnostic VALID / Full Training Pending | W0·입력 exact, first-step Adam/reference 진단, 독립 0–100-step trajectory, fixed Epoch 30 baseline |
-| 05 | Forward & Loss Divergence Analysis | Placeholder | Activation·logits·native/reference CE |
-| 06 | Gradient & Optimizer Update Divergence | Placeholder | Gradient와 native Adam update |
-| 07 | BatchNorm State Divergence | Placeholder | BN output/running state |
+| 04 | [Common Initialization & Controlled Training](experiments/04_common_initialization_controlled_training/README.md) | **Completed / VALID** | W0·입력 exact, first-step·0–100-step·Epoch 30 controlled trajectory |
+| 05 | Forward & Loss Divergence Analysis | **Covered by 04 / Standalone skipped** | 04의 layer activation·native/reference CE trace 재사용 |
+| 06 | Gradient & Optimizer Update Divergence | **Next** | Backward 차이와 native Adam update 추가 격리 |
+| 07 | BatchNorm State Divergence | Pending | BN output/running state |
 | 08 | Multi-Step / Epoch-Level Divergence | Placeholder | update·epoch trajectory |
 | 09 | Layer-by-Layer Training Trajectory | Placeholder | 저장된 checkpoint별 layer 비교 |
 
@@ -155,9 +155,9 @@ Seed별 Gap은 `PyTorch metric_seed − Keras metric_seed`로 정의한다. `Sig
 | 01 | Input Tensor | 완료, Input equality/GPU sanity 통과 | 완료 | Baseline 비교 및 history 분석 완료 |
 | 02 | Batch Order | Attempt 1 Invalid / Bug Fix 완료 | Attempt 2 VALID / 3-Seed 완료 | Runtime 검증 및 Baseline 분석 완료 |
 | 03 | Augmentation | 구현 완료, strict sample-ID runtime 검증 | 3-Seed 완료 | VALID / Baseline 비교 및 history 분석 완료 |
-| 04 | Common Initialization & Controlled Training | 구현 완료 / 3 gate VALID / first-step·100-step 진단 완료 | 대기 | W0·input exact, 첫 비영 BN1 차이 관찰; checkpoint round-trip PASS |
-| 05 | Forward & Loss Divergence | Placeholder | 대기 | 대기 |
-| 06 | Gradient & Optimizer Update Divergence | Placeholder | 대기 | 대기 |
+| 04 | Common Initialization & Controlled Training | 완료 / VALID | 3-Seed × 30 Epoch 완료 | Fixed/Best 성능·first/early/full trajectory 분석 완료 |
+| 05 | Forward & Loss Divergence | 04 진단으로 범위 충족 | 생략 | Standalone experiment skipped |
+| 06 | Gradient & Optimizer Update Divergence | 다음 실험 | 대기 | Backward/Adam 추가 격리 예정 |
 | 07 | BatchNorm State Divergence | Placeholder | 대기 | 대기 |
 | 08 | Multi-Step / Epoch-Level Divergence | Placeholder | 대기 | 대기 |
 | 09 | Layer-by-Layer Training Trajectory | Placeholder | 대기 | 대기 |
@@ -194,9 +194,11 @@ Experiment 03은 strict sample-ID runtime augmentation validation이 `VALID`다.
 ### 15. Phase 2 Controlled Numerical Diagnostics
 
 <!-- LAYER_RESULTS_START -->
-Experiment 04의 [사전 검증과 첫 step 진단](experiments/04_common_initialization_controlled_training/README.md)은 완료됐다. 세 Seed 모두 canonical W0·입력·label과 Conv1 출력이 exact match이고, 첫 비영 수치 차이는 BN1 출력에서 관찰됐다. 이는 첫 *비영* 위치이지 실용적으로 유의한 divergence의 증거는 아니다. 30-epoch 학습과 최종 Test 결과는 **Training Pending**이다.
+Experiment 04의 [통제 학습과 진단](experiments/04_common_initialization_controlled_training/README.md)은 **Completed / VALID**다. 세 Seed 모두 canonical W0·입력·label과 Conv1 출력이 exact match였고, 첫 비영 수치 차이는 약 `1e−6`의 BN1 출력에서 관찰됐다. 이는 첫 *비영* 위치이지 실용적으로 유의한 성능 분기점의 증거는 아니다.
 
-확장 진단은 gradient/update 분포, native Adam m/v와 NumPy reference Adam, 독립된 0–100-step weight trajectory를 기록했다. Canonical checkpoint의 model·optimizer state hash 및 fresh-model load round-trip도 통과했다. 이 진단은 Full Training 결과가 아니다.
+초기 gradient 방향은 거의 같았지만 non-zero difference가 있었고 native Adam update에서 더 큰 relative divergence가 관찰됐다. NumPy reference Adam 비교도 optimizer 구현의 추가 차이 가능성을 보였으나 Adam을 원인으로 단정하지 않는다. Global weight relative L2는 Step 0→100과 Epoch 1→30에서 지속적으로 증가했고, BN running state도 분리됐다.
+
+Fixed Epoch 30 Macro F1 평균은 Keras `39.82%`, PyTorch `35.89%`였지만 PyTorch Seed 2026의 late-stage degradation 영향이 컸다. Best Validation checkpoint 평균은 Keras `47.41%`, PyTorch `47.39%`로 거의 같았다. Epoch 30 train accuracy 평균도 `64.47%/64.31%`로 유사했다. 따라서 04에서는 절대적인 성능 우열보다 **optimization trajectory와 generalization timing 차이**가 더 뚜렷했다. 비슷한 Epoch 30 parameter distance에도 Seed별 performance gap은 크게 달라 parameter distance가 곧 성능 차이를 뜻하지 않았다.
 <!-- LAYER_RESULTS_END -->
 
 ### 16. 주요 발견
@@ -208,6 +210,8 @@ Experiment 01에서 augmentation 이전 deterministic input preprocessing을 동
 Experiment 02 Attempt 1은 Keras lifecycle bug로 무효 처리하고 archive에만 보존했다. 수정 후 Attempt 2는 runtime order validation을 통과했다. 공식 결과에서 Macro F1 Signed Mean Gap은 4.23%p에서 1.32%p로 68.87% 감소했고, Mean Absolute Paired Gap은 4.23%p에서 3.17%p로 25.18% 감소했다. Baseline의 세 Seed 모두 PyTorch 우위였던 방향도 Keras/PyTorch/Keras로 바뀌었다. 다만 Seed 123의 Macro F1 Gap은 +6.73%p였고 양쪽 Seed 변동성이 증가했으므로 Batch Order를 단독 원인으로 보지 않는다. 상세 결과는 [Experiment 02 README](experiments/02_batch_order_alignment/README.md)에 정리했다.
 
 Experiment 03의 유효한 Augmentation Alignment에서는 Macro F1 Signed Mean Gap이 4.23→2.31%p로 45.52% 감소했으나 Mean Absolute Paired Gap은 4.23→3.65%p로 13.71% 감소했다. Seed 2026에서는 Keras가 역전했고 Seed 123에는 +6.40%p Gap이 남았다. 양쪽 Framework의 평균 Accuracy와 F1도 Baseline보다 낮아져 Gap 감소를 성능 향상으로 해석할 수 없다. Phase 1의 독립 branch 중 02가 가장 큰 Seed-level absolute F1 Gap 감소를 보였지만 이를 주요 원인으로 확정하지 않는다. [Experiment 03 README](experiments/03_augmentation_alignment/README.md)에 runtime·history·한계를 기록했다.
+
+Experiment 04에서는 동일 W0/input에서 Conv1까지 exact였고 BN1부터 작은 비영 차이가 관찰됐다. 초기 gradient 방향은 거의 동일했지만 update와 반복 학습을 거치며 parameter/BN trajectory가 분리됐다. Epoch 30 train accuracy와 Best Validation Macro F1 평균은 거의 같았으나, fixed-final validation/Test는 특히 PyTorch Seed 2026에서 크게 악화됐다. 이는 Framework 차이를 일관된 성능 우열보다 optimization trajectory와 generalization timing 차이로 보는 해석을 지지한다. 상세 수치와 `Answer to the Research Question`은 [Experiment 04 README](experiments/04_common_initialization_controlled_training/README.md)에 기록했다.
 
 - Seed마다 우위가 바뀌면 framework 효과보다 stochastic variation이 큰 것으로 보고 H0를 기각하지 않는다.
 - 세 Seed에서 같은 방향의 gap이 반복되면 H1을 검토할 재현성 근거로 사용한다.
@@ -223,7 +227,7 @@ Experiment 03의 유효한 Augmentation Alignment에서는 Macro F1 Signed Mean 
 | H0 | 근거 약화 | 3 Seed 모두 같은 방향의 Accuracy/Macro F1 Gap이 관찰됨. 3 Seed만으로 통계적 기각을 주장하지 않음 |
 | H1 | 추가 분석 근거 확보 | 반복 가능한 Framework Gap이 관찰되어 Phase 1 탐색과 Phase 2 통제 실험을 진행함 |
 | H2 | 부분 지지 | Input, Batch Order, Augmentation 독립 branch 모두 Baseline 대비 F1 Gap 감소 방향. 03은 signed 45.52%, mean absolute paired 13.71% 감소했으나 양쪽 절대 성능 하락·Seed 분산 증가가 동반됨. 단독 원인으로 확정하지 않음 |
-| H3 | 첫 step 진단 완료 / 장기 결과 Pending | W0·입력·Conv1 exact, BN1 출력부터 비영 차이 관찰. 30-epoch trajectory와 성능은 미실행 |
+| H3 | 지지되는 관찰 확보 | W0·입력·Conv1 exact, BN1부터 작은 비영 차이. Update 및 0–100 step·Epoch 1–30에서 trajectory separation 증가. 특정 연산의 인과성은 미확정 |
 <!-- HYPOTHESIS_RESULTS_END -->
 
 ### 18. Conclusion
@@ -243,15 +247,15 @@ Experiment 03의 유효한 Augmentation Alignment에서는 Macro F1 Signed Mean 
 
 ### 20. Future Work
 
-Phase 2의 30-epoch 학습과 05–09 수치 분기 분석 후, 더 많은 Seed·architecture·dataset 및 변수 조합의 factorial 실험으로 확장할 수 있다.
+04에서 Forward/Loss 진단이 충족되어 05 standalone 실험은 생략한다. 다음 06에서 gradient와 native optimizer update를 추가 격리하고, 이후 BN state와 장기 trajectory를 분석한다. 더 많은 Seed·architecture·dataset 및 변수 조합의 factorial 실험도 후속 과제다.
 
 ### 21. Project Structure
 
 ```text
 common/                 Phase 1 유틸리티 + Phase 2 canonical config/data/W0/training 유틸리티
 experiments/00...03/    Phase 1 native/preliminary 실험 및 보존된 결과
-experiments/04_common_initialization_controlled_training/  Phase 2 controlled baseline·preflight·first-step
-experiments/05...09/    Phase 2 divergence roadmap placeholder
+experiments/04_common_initialization_controlled_training/  완료된 Phase 2 controlled baseline·diagnostic·trajectory
+experiments/05...09/    Phase 2 roadmap (05 covered/skipped, 06 next, 07–09 pending)
 scripts/                 학습 없는 실행환경/GPU 검증
 summary/                 전체 집계 및 README marker 갱신
 emotion_dataset/         물리적 train/val/test × 8 classes (Git 제외)
@@ -296,7 +300,7 @@ python -m pip install -r requirements.txt
 .venv-metal/bin/python summary/update_readme.py
 ```
 
-Phase 1 집계 도구는 00–03 결과만 다룬다. 04는 다음 경로를 사용한다. 현재 두 training script의 `RUN_TRAINING = False`는 그대로 유지하며, 실제 30-epoch 학습은 사용자가 각 파일에서 이를 `True`로 바꾼 후에만 시작된다.
+Phase 1 집계 도구는 00–03 결과만 다룬다. 04의 학습과 비교는 이미 완료됐으므로 아래 명령은 결과를 새로 만들기 위한 필수 절차가 아니다. 기존 결과는 Experiment 04의 `results/`와 README에서 확인한다.
 
 ```bash
 .venv-metal/bin/python experiments/04_common_initialization_controlled_training/first_step_trace.py
@@ -308,4 +312,4 @@ Phase 1 집계 도구는 00–03 결과만 다룬다. 04는 다음 경로를 사
 .venv-metal/bin/python experiments/04_common_initialization_controlled_training/compare_controlled.py
 ```
 
-사전 검증은 `CONTROLLED_PRECHECK=VALID`를 확인한다. 첫-step 진단은 full training result가 아니다. 학습 전 `compare_controlled.py`는 최종 결과를 생성하지 않고 Pending 상태를 알린다.
+사전 검증과 first/early-step 진단은 Full Training 결과와 구분한다. 완료된 최종 성능은 fixed Epoch 30 primary와 best-validation secondary를 별도로 해석한다.

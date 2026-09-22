@@ -117,24 +117,47 @@ W1−W0 delta 및 W1 차이를 기록했다. Seed 42 Conv1 delta max abs diff는
 
 ## 23. 3-Seed Training
 
-> **Training Pending.** 30-epoch/3-Seed full training, final Test 평가, full-training history·checkpoint·performance 결과는 생성하지 않았다. 아래의 0–100-step checkpoint는 별도 진단 모델의 산출물이다. `RUN_TRAINING=False`가 양쪽 파일의 기본값이다. Full run은 세 가지 VALID gate가 있어야 시작한다.
+> **Completed / VALID.** Keras와 PyTorch 모두 Seed 42/123/2026에서 30 epochs, Seed당 9,630 optimizer updates를 완료했다. 두 Framework의 config hash는 `341720f5...750f`로 일치하며 checkpoint manifest의 42개 항목(2 Framework × 3 Seeds × 7 시점)이 모두 존재한다.
 
-Training 시 `initial`, `after_first_step`, `epoch_1/5/10/20/30` canonical weight NPZ를 Framework/Seed별 저장해 05–09에서 재사용한다. 각 Seed history는 30행 고정, constant LR·cumulative optimizer steps를 기록한다.
+Epoch 30 train accuracy는 Keras/PyTorch가 Seed 42 `65.07/64.86%`, Seed 123 `63.82/63.63%`, Seed 2026 `64.52/64.44%`였다. 3-Seed 평균은 `64.47/64.31%`로 거의 같았다. 그러나 validation과 Test에서는 더 큰 차이가 나타났으며 특히 PyTorch Seed 2026의 후반부 변화가 컸다.
 
 ## 24. Evaluation
 
-Primary는 **fixed Epoch 30 final model**의 Test Accuracy/Macro F1/Loss다. Secondary는 best validation-loss epoch의 별도 model Test 값이다. Best checkpoint는 학습 중 복원하지 않는다. `compare_controlled.py`는 3-Seed 결과·history·step count를 확인한 뒤 두 checkpoint 유형을 분리해 비교하고 그림을 만든다. 04를 Phase 1 OFAT gap-reduction 표의 다음 행으로 취급하지 않는다.
+Primary는 같은 update count에서 비교하는 **fixed Epoch 30 final model**이고, Secondary는 Framework별 best validation-loss checkpoint다. Best checkpoint는 학습 trajectory에 복원하지 않았다. 두 결과를 섞어 해석하지 않는다.
+
+### Fixed Epoch 30 — Primary
+
+| Seed | Keras Acc. | PyTorch Acc. | Keras Macro F1 | PyTorch Macro F1 |
+|---:|---:|---:|---:|---:|
+| 42 | 46.71% | 47.71% | 43.89% | 45.17% |
+| 123 | 42.31% | 41.17% | 35.15% | 33.72% |
+| 2026 | 41.03% | 33.09% | 40.41% | 28.79% |
+| **Mean ± sample std** | **43.35 ± 2.98%** | **40.66 ± 7.32%** | **39.82 ± 4.40%** | **35.89 ± 8.40%** |
+
+Epoch 30의 signed mean gap(`PyTorch−Keras`)은 Accuracy `−2.69%p`, Macro F1 `−3.93%p`다. 그러나 이 평균은 Seed 2026의 late-stage degradation 영향을 크게 받으며, Seed 42에서는 PyTorch가 오히려 `+1.28%p` Macro F1이었다. 이를 Framework의 절대적인 성능 우열로 해석하지 않는다.
+
+### Best Validation Loss — Secondary
+
+| Seed | Best epoch K/P | Keras Acc. | PyTorch Acc. | Keras Macro F1 | PyTorch Macro F1 |
+|---:|---:|---:|---:|---:|---:|
+| 42 | 26 / 23 | 50.39% | 47.80% | 47.64% | 44.71% |
+| 123 | 29 / 21 | 48.12% | 48.39% | 46.94% | 46.79% |
+| 2026 | 22 / 26 | 49.34% | 52.02% | 47.65% | 50.67% |
+| **Mean ± sample std** | — | **49.28 ± 1.14%** | **49.40 ± 2.29%** | **47.41 ± 0.41%** | **47.39 ± 3.02%** |
+
+Best checkpoint의 평균 Macro F1은 `47.41%`와 `47.39%`로 거의 같아 signed mean gap은 `−0.02%p`였다. 다만 Seed별 paired absolute gap 평균은 `2.03%p`이므로 “모든 Seed에서 동일”하다는 뜻은 아니다. Fixed Epoch 30과 Best Validation 결과의 차이는 동일 update count에서의 최종 성능과 Framework별 generalization timing이 서로 다른 질문임을 보여준다.
 
 ## 25. Limitations
 
 - Metal/MPS, native Conv/BN/autograd/Adam은 bitwise 동일을 보장하지 않는다.
 - 현재 first nonzero BN1 차이는 약 10⁻⁶ 수준의 관찰이며 실용적 유의성을 주장하지 않는다.
 - 하나의 CNN·dataset·physical split 및 3 Seeds에 제한된다.
-- Full training이 아직 없으므로 Epoch 30 성능·trajectory 결론은 없다.
+- Best checkpoint는 각 Framework에서 서로 다른 epoch일 수 있으므로 동일 update count 비교가 아니다.
+- Parameter distance와 성능 차이의 관계는 단조롭지 않으며 3 Seeds만으로 상관 또는 인과를 주장할 수 없다.
 
 ## 26. Next Experiments
 
-05 Forward & Loss Divergence → 06 Gradient & Optimizer Update Divergence → 07 BatchNorm State Divergence → 08 Multi-Step / Epoch-Level Divergence → 09 Layer-by-Layer Training Trajectory. 기존 미실행 placeholder는 각 폴더의 `archive/pre_redesign/`에 보존했다.
+Experiment 04의 first-step trace가 Forward와 Loss를 이미 포괄하므로 **05 Forward & Loss Divergence의 standalone 실행은 생략**한다. 다음 독립 분석은 **06 Gradient & Optimizer Update Divergence**이며, Adam을 원인으로 확정하지 않고 backward 차이와 native optimizer의 추가 효과를 분리한다. 07 BN State, 08 Multi-Step/Epoch, 09 Layer Trajectory는 이후 분석 대상으로 유지한다.
 
 Preflight 및 diagnostic 재실행(학습 없음):
 
@@ -147,13 +170,7 @@ Preflight 및 diagnostic 재실행(학습 없음):
 
 기존 VALID artifact와 새 diagnostic snapshot은 overwrite-protected다. 이미 생성된 같은 파일을 다시 만들려고 하면 기존 값을 조용히 덮지 않고 중단될 수 있다. 이후 재실험 시에는 기존 artifact를 별도 보존하고 새 경로/버전을 지정해야 한다. 일반적인 학습 직전 확인은 `preflight_validate.py`만 다시 실행하면 된다.
 
-사용자가 두 training 파일의 `RUN_TRAINING`을 직접 `True`로 바꾼 뒤:
-
-```bash
-.venv-metal/bin/python experiments/04_common_initialization_controlled_training/keras_controlled_train.py
-.venv-metal/bin/python experiments/04_common_initialization_controlled_training/pytorch_controlled_train.py
-.venv-metal/bin/python experiments/04_common_initialization_controlled_training/compare_controlled.py
-```
+완료 결과는 `results/keras_controlled_results.csv`, `pytorch_controlled_results.csv`, `controlled_comparison_summary.json`과 history/trajectory/checkpoint manifest에 보존되어 있다. 결과 보호를 위해 재학습은 기본 workflow가 아니다.
 
 ## 27. Extended First-Step Diagnostic
 
@@ -203,11 +220,11 @@ Seed 123에서는 reference 두 gradient의 update가 거의 같지만 native Ke
 | 123 | 0 | .000511 | .000618 | .001519 | .004269 | .011339 | .031571 | .060836 |
 | 2026 | 0 | .000454 | .000546 | .000977 | .002512 | .008323 | .026219 | .048222 |
 
-표는 global trainable weight의 relative L2다. Step 100에서 Conv1/Conv4/FC128/Output relative L2는 Seed 42가 `.0413/.1579/.0423/.0305`, 123이 `.0346/.1195/.0338/.0252`, 2026이 `.0279/.0974/.0275/.0198`이었다. 세 Seed 모두 이 짧은 구간에서는 거리가 증가했지만 30-epoch 추세나 성능 차이는 아직 알 수 없다. [진단 그림](results/figures/diagnostic/)은 첫-step 3종과 Seed별 early-step 곡선만 담는다.
+표는 global trainable weight의 relative L2다. Step 100에서 Conv1/Conv4/FC128/Output relative L2는 Seed 42가 `.0413/.1579/.0423/.0305`, 123이 `.0346/.1195/.0338/.0252`, 2026이 `.0279/.0974/.0275/.0198`이었다. 세 Seed 모두 이 짧은 구간에서 거리가 증가했으며, 아래 full-training trajectory에서도 증가가 이어졌다. [진단 그림](results/figures/diagnostic/)은 첫-step 3종과 Seed별 early-step 곡선을 담는다.
 
 ## 31. Training Checkpoint Strategy
 
-Full Training을 사용자가 시작하면 각 Framework가 **독립적으로** `initial(step 0)`, `after_first_step(step 1)`, `epoch_001(321)`, `epoch_005(1605)`, `epoch_010(3210)`, `epoch_020(6420)`, `epoch_030(9630)`을 저장한다. 저장은 export/copy만 하며 추가 forward/backward/update가 없다. 디테일 통계는 매 batch가 아니라 진단과 checkpoint 비교 시에만 계산한다. Full Training 결과가 있으면 기존 Seed의 history·result·checkpoint를 조용히 덮지 않으며 자동 resume는 없다. `ALLOW_OVERWRITE=False`다.
+완료된 Full Training은 각 Framework에서 독립적으로 `initial(step 0)`, `after_first_step(step 1)`, `epoch_001(321)`, `epoch_005(1605)`, `epoch_010(3210)`, `epoch_020(6420)`, `epoch_030(9630)`을 저장했다. 저장은 export/copy만 수행해 추가 forward/backward/update가 없었다. 기존 Seed의 history·result·checkpoint는 조용히 덮어쓰지 않으며 자동 resume도 없다. `ALLOW_OVERWRITE=False`다.
 
 ## 32. Canonical Checkpoint Format
 
@@ -215,8 +232,36 @@ Full Training을 사용자가 시작하면 각 Framework가 **독립적으로** 
 
 ## 33. Checkpoint Integrity / SHA-256
 
-각 checkpoint의 metadata JSON에는 seed·epoch·global step·batch/augmentation version·config SHA-256, canonical model/optimizer state SHA-256, NPZ 파일 SHA-256과 key 목록을 기록한다. Full Training 시 `results/checkpoints/checkpoint_manifest.csv`에 전체 경로·hash를 기록하고, `compare_controlled.py`가 모든 Seed/Framework의 7개 시점과 step/config hash를 확인한 뒤 trajectory CSV를 생성한다. Diagnostic checkpoint는 별도 `results/early_steps/checkpoints/seed*/step*/`에 있다. Step 0/1의 canonical model을 fresh Keras/PyTorch model로 load→re-export한 결과가 exact였고, 저장된 Adam m/v NPZ의 hash/값 round-trip도 PASS다. Native optimizer resume round-trip은 구현·검증하지 않았다. 대용량 diagnostic/full-training checkpoint 폴더는 로컬에는 보존하되 `.gitignore`로 Git 추적에서는 제외한다.
+각 checkpoint의 metadata JSON에는 seed·epoch·global step·batch/augmentation version·config SHA-256, canonical model/optimizer state SHA-256, NPZ 파일 SHA-256과 key 목록을 기록한다. `results/checkpoints/checkpoint_manifest.csv`에는 42개 checkpoint의 전체 경로·hash가 있으며, `compare_controlled.py`가 모든 Seed/Framework의 7개 시점과 step/config hash를 확인해 trajectory CSV를 생성했다. Diagnostic checkpoint는 별도 `results/early_steps/checkpoints/seed*/step*/`에 있다. Step 0/1의 canonical model을 fresh Keras/PyTorch model로 load→re-export한 결과가 exact였고, 저장된 Adam m/v NPZ의 hash/값 round-trip도 PASS다. Native optimizer resume round-trip은 구현·검증하지 않았다. 대용량 diagnostic/full-training checkpoint 폴더는 로컬에는 보존하되 `.gitignore`로 Git 추적에서는 제외한다.
 
 ## 34. Resume Safety and Readiness
 
-기존 VALID preflight·first-step artifact는 보존하고 새 결과를 별도 파일에 저장했다. 설정 hash가 변경되거나 확장 trace·checkpoint 검증이 빠지면 Full Training gate가 닫힌다. NaN/Inf는 forward·loss·gradient·m/v·update·BN 추출 시 검사하며 이번 진단에서 발견되지 않았다. 현재 `CONTROLLED_PRECHECK=VALID`, `EXTENDED_DIAGNOSTIC_STATUS=VALID`, `CHECKPOINT_ROUNDTRIP=VALID`, `FULL_TRAINING_READY=TRUE`다. 이는 **학습 실행 승인 준비 상태**이지 학습 완료가 아니다. 두 training script는 여전히 `RUN_TRAINING=False`이며 결과 CSV·history·full-training checkpoint는 없다.
+기존 VALID preflight·first-step artifact는 보존하고 확장 진단과 학습 결과를 별도 파일에 저장했다. NaN/Inf는 forward·loss·gradient·m/v·update·BN 추출 시 검사했으며 발견되지 않았다. `CONTROLLED_PRECHECK=VALID`, `EXTENDED_DIAGNOSTIC_STATUS=VALID`, `CHECKPOINT_ROUNDTRIP=VALID`였고, 그 gate를 통과한 3-Seed controlled training과 비교도 완료됐다. 결과 해석의 유효성은 이 통제조건과 고정 config hash를 전제로 한다.
+
+## 35. Full-Training Parameter and BN Trajectory
+
+Global trainable-weight relative L2는 모든 Seed에서 Epoch 1부터 30까지 저장 시점마다 증가했다.
+
+| Seed | Epoch 1 | Epoch 5 | Epoch 10 | Epoch 20 | Epoch 30 |
+|---:|---:|---:|---:|---:|---:|
+| 42 | 0.195 | 0.566 | 0.793 | 1.013 | 1.116 |
+| 123 | 0.189 | 0.577 | 0.807 | 1.023 | 1.126 |
+| 2026 | 0.174 | 0.555 | 0.784 | 1.003 | 1.104 |
+
+Epoch 30 Conv kernel의 **absolute L2 distance**는 세 Seed 모두 `Conv1 < Conv2 < Conv3 < Conv4`였다: Seed 42 `1.18/12.32/33.25/68.57`, Seed 123 `1.68/14.04/34.88/68.54`, Seed 2026 `1.55/11.80/32.31/68.25`. 이는 깊은 층일수록 parameter 수가 증가하는 영향도 포함한다. 크기를 정규화한 relative L2에서는 깊은 Conv가 Conv1보다 대체로 컸지만 엄격한 단조 순서는 아니었고, Epoch 30에는 Conv3가 Conv4보다 큰 경우가 반복됐다. 따라서 깊은 layer에서 더 큰 trajectory separation이 관찰됐다고는 할 수 있으나, 깊이 자체가 원인이라고 단정하지 않는다.
+
+BN running state도 학습과 함께 분리됐다. 예를 들어 Epoch 30 BN4 running-mean relative L2는 Seed 42/123/2026에서 `1.264/1.206/1.009`였다. 이는 native BN state trajectory가 달라졌음을 보여주지만 BN을 성능 차이의 원인으로 확정하지 않으며 07에서 별도 격리가 필요하다.
+
+Seed 2026 PyTorch는 Epoch 26에 validation loss `1.3150`, validation accuracy `50.91%`로 best checkpoint를 기록한 뒤 Epoch 30에는 validation loss `2.4045`, accuracy `33.45%`로 악화됐다. Test Macro F1도 best checkpoint `50.67%`에서 fixed Epoch 30 `28.79%`로 떨어졌다. 반면 train accuracy는 Epoch 30까지 `64.44%`로 증가해 Keras `64.52%`와 거의 같았다. 이는 학습 적합도 자체보다 late-stage generalization timing의 차이를 시사하는 사례다.
+
+Epoch 30 global weight relative L2는 세 Seed 모두 비슷한 `1.10–1.13` 범위였지만 fixed-final Macro F1 paired gap은 Seed 42 `+1.28%p`, 123 `−1.44%p`, 2026 `−11.63%p`로 크게 달랐다(`PyTorch−Keras`). 따라서 parameter distance가 크다는 사실만으로 performance gap의 크기나 방향을 예측할 수 없다.
+
+## Answer to the Research Question
+
+동일 초기 가중치와 동일 입력에서는 Conv1까지 exact였고, 최초의 비영 수치 차이는 BN1에서 약 `1e−6` 수준으로 관찰됐다. 이 위치를 실질적인 성능 분기점으로 취급하지 않는다.
+
+초기 gradient는 cosine similarity가 거의 1로 방향이 매우 유사했지만 non-zero difference가 존재했고, native Adam update에서는 gradient보다 더 큰 relative divergence가 관찰됐다. NumPy reference Adam과의 비교에서도 native optimizer 수식의 추가 차이가 관찰됐으나, 이 결과만으로 Adam을 원인이라고 확정할 수 없다. 이는 backward 차이와 optimizer 구현을 더 분리할 필요가 있는 plausible amplification point다.
+
+반복 update를 거치며 Step 0→100과 Epoch 1→30에서 parameter trajectory는 지속적으로 분리됐다. Conv kernel의 absolute distance는 깊은 layer로 갈수록 증가했고 BN running state도 크게 분리됐다. 그러나 Epoch 30 train accuracy는 두 Framework가 거의 같았고, Best Validation checkpoint의 평균 Macro F1도 Keras `47.41%`, PyTorch `47.39%`로 거의 같았다.
+
+따라서 Experiment 04에서 Framework 차이는 분류 성능의 일관된 절대 우열보다 **optimization trajectory와 generalization timing의 차이**에서 더 뚜렷하게 나타났다. 특히 Seed 2026의 late-stage degradation은 fixed Epoch 30 결과가 best-validation 결과와 크게 달라질 수 있음을 보여준다. Parameter distance와 performance gap도 단조 관계가 아니므로, 다음 06 실험에서 gradient와 optimizer update를 추가 격리해야 한다.
