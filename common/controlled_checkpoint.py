@@ -33,7 +33,8 @@ def read_npz(path: Path) -> dict[str, np.ndarray]:
 def save_canonical_checkpoint(
     framework: str, seed: int, name: str, model_state: dict[str, np.ndarray],
     optimizer_state: dict[str, np.ndarray], *, epoch: int, optimizer_step: int,
-    diagnostic: bool = False,
+    diagnostic: bool = False, results_root: Path = RESULTS,
+    config_sha256: str | None = None,
 ) -> tuple[Path, Path, Path]:
     """Save copies only; no framework forward/backward/RNG calls are made."""
     assert_finite(model_state, "checkpoint model")
@@ -42,7 +43,8 @@ def save_canonical_checkpoint(
         raise ValueError("Missing checkpoint state")
     if optimizer_step == 0 and optimizer_state:
         raise ValueError("Initial checkpoint must have empty Adam state")
-    base = RESULTS / ("early_steps/checkpoints" if diagnostic else "checkpoints") / f"seed{seed}"
+    expected_config_hash = config_sha256 or config_hash()
+    base = results_root / ("early_steps/checkpoints" if diagnostic else "checkpoints") / f"seed{seed}"
     folder = base / (f"step{optimizer_step:03d}" if diagnostic else framework)
     stem = framework if diagnostic else name
     model_path = folder / f"{stem}_state.npz" if diagnostic else folder / f"{stem}.npz"
@@ -59,7 +61,7 @@ def save_canonical_checkpoint(
         "checkpoint_name": name, "epoch": epoch, "optimizer_step": optimizer_step,
         "batch_schedule_version": BATCH_SCHEDULE_VERSION,
         "augmentation_version": AUGMENTATION_VERSION,
-        "config_sha256": config_hash(),
+        "config_sha256": expected_config_hash,
         "model_state_sha256": state_hash(model_state),
         "optimizer_state_sha256": state_hash(optimizer_state),
         "model_file_sha256": _file_hash(model_path),
@@ -67,17 +69,20 @@ def save_canonical_checkpoint(
         "model_keys": sorted(model_state), "optimizer_keys": sorted(optimizer_state),
     }
     metadata_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
-    verify_checkpoint(model_path, optimizer_path, metadata_path)
+    verify_checkpoint(model_path, optimizer_path, metadata_path, expected_config_hash=expected_config_hash)
     if not diagnostic:
-        _append_manifest(metadata, model_path, optimizer_path, metadata_path)
+        _append_manifest(metadata, model_path, optimizer_path, metadata_path, results_root)
     return targets
 
 
-def verify_checkpoint(model_path: Path, optimizer_path: Path, metadata_path: Path) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
+def verify_checkpoint(
+    model_path: Path, optimizer_path: Path, metadata_path: Path,
+    *, expected_config_hash: str | None = None,
+) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
     model_state, optimizer_state = read_npz(model_path), read_npz(optimizer_path)
     checks = (
-        metadata["config_sha256"] == config_hash(),
+        metadata["config_sha256"] == (expected_config_hash or config_hash()),
         metadata["model_state_sha256"] == state_hash(model_state),
         metadata["optimizer_state_sha256"] == state_hash(optimizer_state),
         metadata["model_file_sha256"] == _file_hash(model_path),
@@ -90,15 +95,18 @@ def verify_checkpoint(model_path: Path, optimizer_path: Path, metadata_path: Pat
     return model_state, optimizer_state
 
 
-def _append_manifest(metadata: dict[str, object], model_path: Path, optimizer_path: Path, metadata_path: Path) -> None:
-    path = RESULTS / "checkpoints" / "checkpoint_manifest.csv"
+def _append_manifest(
+    metadata: dict[str, object], model_path: Path, optimizer_path: Path,
+    metadata_path: Path, results_root: Path = RESULTS,
+) -> None:
+    path = results_root / "checkpoints" / "checkpoint_manifest.csv"
     row = {
         "seed": metadata["seed"], "framework": metadata["framework"],
         "checkpoint_name": metadata["checkpoint_name"], "epoch": metadata["epoch"],
         "optimizer_step": metadata["optimizer_step"],
-        "model_file": str(model_path.relative_to(RESULTS)),
-        "optimizer_file": str(optimizer_path.relative_to(RESULTS)),
-        "metadata_file": str(metadata_path.relative_to(RESULTS)),
+        "model_file": str(model_path.relative_to(results_root)),
+        "optimizer_file": str(optimizer_path.relative_to(results_root)),
+        "metadata_file": str(metadata_path.relative_to(results_root)),
         "model_sha256": metadata["model_file_sha256"],
         "optimizer_sha256": metadata["optimizer_file_sha256"],
         "config_sha256": metadata["config_sha256"],

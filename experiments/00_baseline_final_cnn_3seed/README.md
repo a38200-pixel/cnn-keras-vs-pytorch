@@ -81,7 +81,7 @@ PyTorch는 세 Seed 모두에서 Keras보다 높은 Test Accuracy와 Macro F1을
 
 PyTorch는 Train Accuracy가 더 높고 Train-Val gap도 평균 9.47%p로 Keras의 4.67%p보다 컸다. 즉 더 강하게 fitting하면서 Test 성능도 높아졌지만 과적합 경향 역시 더 크게 나타났다.
 
-이 결과로 framework 자체가 성능 차이의 원인이라고 단정할 수는 없다. Baseline은 각 framework의 기존 구현 방식을 보존하므로 초기화, 입력 tensor 처리, augmentation, batch 순서, output/loss, Adam epsilon과 callback 동작 차이가 함께 남아 있다. 실험 01~08에서 각 요인을 하나씩 정렬한 뒤 gap의 변화량으로 원인을 검증한다.
+이 결과로 framework 자체가 성능 차이의 원인이라고 단정할 수는 없다. Baseline은 각 framework의 기존 구현 방식을 보존하므로 초기화, 입력 tensor 처리, augmentation, batch 순서, output/loss, Adam epsilon과 callback 동작 차이가 함께 남아 있다. 01~03 preliminary alignment와 04~08 strict controlled phase에서 차이를 단계적으로 검증한다.
 
 ## Limitations
 

@@ -8,7 +8,7 @@
 
 ### Experimental Environment
 
-00–09의 모든 실험은 아래 한 환경으로 고정한다. Framework 차이를 연구하는 동안 hardware, Python 또는 framework version이 바뀌면 새로운 혼란 변수가 생기기 때문이다.
+00–08의 모든 실험은 아래 한 환경으로 고정한다. Framework 차이를 연구하는 동안 hardware, Python 또는 framework version이 바뀌면 새로운 혼란 변수가 생기기 때문이다.
 
 | Category | Fixed environment |
 |---|---|
@@ -30,7 +30,7 @@ TensorFlow 2.21.0과 tensorflow-metal 조합에서는 `libmetal_plugin.dylib` / 
 ```text
 기존 CNN 구현 → Phase 1: 00–03 native/OFAT preliminary comparison
 → Phase 2: 04 common W0·input·batch·augmentation controlled baseline
-→ 05–09 forward/loss/gradient/update/BN/multi-step/layer trajectory 분석
+→ 05 common Adam control → 06–08 BN/multi-step/layer trajectory 분석
 → fixed Epoch 30 성능을 마지막 결과로 해석
 ```
 
@@ -115,7 +115,7 @@ Keras는 `padding="same"`, PyTorch는 `padding=1`을 사용한다.
 
 ### 9. Experimental Methodology
 
-**Phase 1 (00–03)**은 Framework별 native 조건을 보존하거나 한 요인씩 정렬하는 preliminary OFAT다. **Phase 2 (04–09)**는 여러 외부 조건을 동시에 고정하는 strict controlled comparison이다. 04는 Phase 1 OFAT 표의 다음 행이 아니라 새로운 controlled baseline이다. 04부터 Accuracy/F1보다 W0→입력→activation→loss→gradient→update→BN state 순서를 먼저 분석한다.
+**Phase 1 (00–03)**은 Framework별 native 조건을 보존하거나 한 요인씩 정렬하는 preliminary OFAT다. **Phase 2 (04–08)**는 여러 외부 조건을 동시에 고정하는 strict controlled comparison이다. 04는 Phase 1 OFAT 표의 다음 행이 아니라 새로운 controlled baseline이다. 04부터 Accuracy/F1보다 W0→입력→activation→loss→gradient→update→BN state 순서를 먼저 분석한다.
 
 Seed별 Gap은 `PyTorch metric_seed − Keras metric_seed`로 정의한다. `Signed Mean Gap = mean(Gap_seed)`은 평균 우위 방향을, `Mean Absolute Paired Gap = mean(abs(Gap_seed))`은 Seed별 차이의 평균 크기를 나타낸다. 각 지표의 Gap Reduction은 `baseline gap − current gap`으로 계산한다. 양수는 Gap 감소, 0 근처는 영향이 작음, 음수는 Gap 증가를 뜻하며 Baseline gap이 거의 0이면 reduction rate는 N/A다.
 
@@ -139,11 +139,10 @@ Seed별 Gap은 `PyTorch metric_seed − Keras metric_seed`로 정의한다. `Sig
 | ID | Experiment | Status | Primary focus |
 |---|---|---|---|
 | 04 | [Common Initialization & Controlled Training](experiments/04_common_initialization_controlled_training/README.md) | **Completed / VALID** | W0·입력 exact, first-step·0–100-step·Epoch 30 controlled trajectory |
-| 05 | Forward & Loss Divergence Analysis | **Covered by 04 / Standalone skipped** | 04의 layer activation·native/reference CE trace 재사용 |
-| 06 | Gradient & Optimizer Update Divergence | **Next** | Backward 차이와 native Adam update 추가 격리 |
-| 07 | BatchNorm State Divergence | Pending | BN output/running state |
-| 08 | Multi-Step / Epoch-Level Divergence | Placeholder | update·epoch trajectory |
-| 09 | Layer-by-Layer Training Trajectory | Placeholder | 저장된 checkpoint별 layer 비교 |
+| 05 | [Common Adam Optimizer Control](experiments/05_gradient_optimizer_divergence/README.md) | **Implementation / Preflight VALID** | Gradient는 native 유지, 동일 Common Adam으로 optimizer implementation만 통제 |
+| 06 | BatchNorm State Divergence | Pending | BN output/running state |
+| 07 | Multi-Step / Epoch-Level Divergence | Pending | update·epoch trajectory |
+| 08 | Layer-by-Layer Training Trajectory | Pending | 저장된 checkpoint별 layer 비교 |
 
 ### 12. Experiment Progress
 
@@ -156,11 +155,10 @@ Seed별 Gap은 `PyTorch metric_seed − Keras metric_seed`로 정의한다. `Sig
 | 02 | Batch Order | Attempt 1 Invalid / Bug Fix 완료 | Attempt 2 VALID / 3-Seed 완료 | Runtime 검증 및 Baseline 분석 완료 |
 | 03 | Augmentation | 구현 완료, strict sample-ID runtime 검증 | 3-Seed 완료 | VALID / Baseline 비교 및 history 분석 완료 |
 | 04 | Common Initialization & Controlled Training | 완료 / VALID | 3-Seed × 30 Epoch 완료 | Fixed/Best 성능·first/early/full trajectory 분석 완료 |
-| 05 | Forward & Loss Divergence | 04 진단으로 범위 충족 | 생략 | Standalone experiment skipped |
-| 06 | Gradient & Optimizer Update Divergence | 다음 실험 | 대기 | Backward/Adam 추가 격리 예정 |
-| 07 | BatchNorm State Divergence | Placeholder | 대기 | 대기 |
-| 08 | Multi-Step / Epoch-Level Divergence | Placeholder | 대기 | 대기 |
-| 09 | Layer-by-Layer Training Trajectory | Placeholder | 대기 | 대기 |
+| 05 | Common Adam Optimizer Control | 구현 완료 / Preflight VALID | 대기 | First-step·0–100-step 진단 완료, Full Training Pending |
+| 06 | BatchNorm State Divergence | Placeholder | 대기 | 대기 |
+| 07 | Multi-Step / Epoch-Level Divergence | Placeholder | 대기 | 대기 |
+| 08 | Layer-by-Layer Training Trajectory | Placeholder | 대기 | 대기 |
 
 ### 13. Baseline 3-Seed Results
 
@@ -247,7 +245,7 @@ Experiment 04에서는 동일 W0/input에서 Conv1까지 exact였고 BN1부터 �
 
 ### 20. Future Work
 
-04에서 Forward/Loss 진단이 충족되어 05 standalone 실험은 생략한다. 다음 06에서 gradient와 native optimizer update를 추가 격리하고, 이후 BN state와 장기 trajectory를 분석한다. 더 많은 Seed·architecture·dataset 및 변수 조합의 factorial 실험도 후속 과제다.
+Forward & Loss analysis was covered by Experiment 04 diagnostics. 기존 standalone Forward/Loss Experiment 05는 따라서 생략하고 Phase 2 번호를 재정리했다. 새 05는 native backward를 유지하면서 Adam implementation만 공통화해 optimizer의 amplification 기여를 격리한다. 이후 06 BN state, 07 multi-step/epoch, 08 layer trajectory를 분석한다. 더 많은 Seed·architecture·dataset 및 변수 조합의 factorial 실험도 후속 과제다.
 
 ### 21. Project Structure
 
@@ -255,7 +253,7 @@ Experiment 04에서는 동일 W0/input에서 Conv1까지 exact였고 BN1부터 �
 common/                 Phase 1 유틸리티 + Phase 2 canonical config/data/W0/training 유틸리티
 experiments/00...03/    Phase 1 native/preliminary 실험 및 보존된 결과
 experiments/04_common_initialization_controlled_training/  완료된 Phase 2 controlled baseline·diagnostic·trajectory
-experiments/05...09/    Phase 2 roadmap (05 covered/skipped, 06 next, 07–09 pending)
+experiments/05...08/    Phase 2 roadmap (05 Common Adam 구현, 06–08 pending)
 scripts/                 학습 없는 실행환경/GPU 검증
 summary/                 전체 집계 및 README marker 갱신
 emotion_dataset/         물리적 train/val/test × 8 classes (Git 제외)

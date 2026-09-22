@@ -10,5 +10,7 @@ experiments/*/archive/**/*.keras
 experiments/*/archive/**/*.pt
 experiments/04_common_initialization_controlled_training/results/early_steps/checkpoints/
 experiments/04_common_initialization_controlled_training/results/checkpoints/
+experiments/05_gradient_optimizer_divergence/results/early_steps/checkpoints/
+experiments/05_gradient_optimizer_divergence/results/checkpoints/
 !experiments/*/results/.gitkeep
 !summary/figures/.gitkeep

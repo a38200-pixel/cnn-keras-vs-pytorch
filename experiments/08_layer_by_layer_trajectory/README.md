@@ -1,4 +1,4 @@
-# Experiment 09 - Layer-by-Layer Training Trajectory
+# Experiment 08 - Layer-by-Layer Training Trajectory
 
 Phase 2 - Strict Controlled Framework Comparison의 후속 분석 placeholder다.
 

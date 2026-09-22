@@ -1,0 +1,23 @@
+{
+  "seed": 123,
+  "config_sha256": "450cbd41350873c08d0bc6ca5f147d475fbd8764670706fdbf6926a78d4fca7d",
+  "w0_exact": true,
+  "input_exact": true,
+  "conv1_exact": true,
+  "labels_exact": true,
+  "common_adam_class": "common.reference_adam.CommonAdam",
+  "same_common_adam_implementation": true,
+  "common_adam_step": 1,
+  "keras_loss": 2.244316339492798,
+  "pytorch_loss": 2.244316339492798,
+  "gradient_relative_l2": 2.8336741016546065e-05,
+  "update_relative_l2": 0.0006329665680949423,
+  "m_relative_l2": 2.8336951893452236e-05,
+  "v_relative_l2": 5.1286445069597845e-05,
+  "weight_relative_l2": 1.3072376860489978e-05,
+  "experiment04_native_update_relative_l2": 0.024755072343138694,
+  "common_vs_native_update_ratio": 0.025569166565993905,
+  "nan_or_inf": false,
+  "keras_device": "/job:localhost/replica:0/task:0/device:GPU:0",
+  "pytorch_device": "mps"
+}

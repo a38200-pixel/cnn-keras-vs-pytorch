@@ -1,0 +1,28 @@
+{
+  "status": "VALID",
+  "config_sha256": "450cbd41350873c08d0bc6ca5f147d475fbd8764670706fdbf6926a78d4fca7d",
+  "interpretation": "Only native Adam implementation was replaced; gradient, BN, and backend differences remain.",
+  "by_seed": {
+    "42": {
+      "gradient_relative_l2": 0.0009623036158326893,
+      "experiment04_native_update_relative_l2": 0.02942982068473618,
+      "experiment05_common_update_relative_l2": 0.023448969352963245,
+      "common_vs_native_update_ratio": 0.7967758147138521,
+      "step100_weight_relative_l2": 0.06712225959822576
+    },
+    "123": {
+      "gradient_relative_l2": 2.8336741016546065e-05,
+      "experiment04_native_update_relative_l2": 0.024755072343138694,
+      "experiment05_common_update_relative_l2": 0.0006329665680949423,
+      "common_vs_native_update_ratio": 0.025569166565993905,
+      "step100_weight_relative_l2": 0.04479276097536807
+    },
+    "2026": {
+      "gradient_relative_l2": 3.099092493975526e-05,
+      "experiment04_native_update_relative_l2": 0.0219712342591846,
+      "experiment05_common_update_relative_l2": 0.0028397771701546117,
+      "common_vs_native_update_ratio": 0.12924977889976774,
+      "step100_weight_relative_l2": 0.04793898945252593
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "status": "VALID",
+  "steps": [
+    0,
+    1,
+    2,
+    5,
+    10,
+    20,
+    50,
+    100
+  ],
+  "config_sha256": "450cbd41350873c08d0bc6ca5f147d475fbd8764670706fdbf6926a78d4fca7d",
+  "full_training_executed": false
+}
