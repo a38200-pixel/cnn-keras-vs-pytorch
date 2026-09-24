@@ -109,7 +109,7 @@ Layer별 shape, mean/std, MAE, max, MSE/RMSE, cosine은 `results/first_step/seed
 
 ## 21. Optimizer Update Trace
 
-W1−W0 delta 및 W1 차이를 기록했다. Seed 42 Conv1 delta max abs diff는 **1.98×10⁻³**였다. 양쪽 native Adam 구현 차이와 gradient 차이가 섞인 관찰이며, 새 05 Common Adam control에서 추가 분리한다. `seed{seed}_update_trace.csv` 참조.
+W1−W0 delta 및 W1 차이를 기록했다. Seed 42 Conv1 delta max abs diff는 **1.98×10⁻³**였다. 양쪽 native Adam 구현 차이와 gradient 차이가 섞인 관찰이며, 후속 05 Common Adam control에서 optimizer implementation 기여를 추가 분리했다. `seed{seed}_update_trace.csv` 참조.
 
 ## 22. BatchNorm State Trace
 
@@ -157,7 +157,7 @@ Best checkpoint의 평균 Macro F1은 `47.41%`와 `47.39%`로 거의 같아 sign
 
 ## 26. Next Experiments
 
-Forward & Loss analysis was covered by Experiment 04 diagnostics. The former standalone Forward/Loss Experiment 05 was therefore skipped, and the Phase 2 experiments were renumbered. 새 **05 Common Adam Optimizer Control**은 native backward를 유지한 채 native optimizer implementation만 공통 구현으로 교체한다. 이후 06 BN State, 07 Multi-Step/Epoch, 08 Layer Trajectory를 분석 대상으로 유지한다.
+Forward & Loss analysis was covered by Experiment 04 diagnostics. The former standalone Forward/Loss Experiment 05 was therefore skipped, and the Phase 2 experiments were renumbered. 후속 **05 Common Adam Optimizer Control**은 완료됐으며, first-update global divergence를 3-Seed 평균 64.65% 줄였지만 Epoch 30 global weight distance는 1.82%만 감소했다. 따라서 native Adam은 초기 amplification contributor로 관찰됐으나 장기 separation을 완전히 설명하지 못했다. 다음 단계는 **06 BN State Divergence**다.
 
 Preflight 및 diagnostic 재실행(학습 없음):
 
@@ -248,7 +248,7 @@ Global trainable-weight relative L2는 모든 Seed에서 Epoch 1부터 30까지 
 | 123 | 0.189 | 0.577 | 0.807 | 1.023 | 1.126 |
 | 2026 | 0.174 | 0.555 | 0.784 | 1.003 | 1.104 |
 
-Epoch 30 Conv kernel의 **absolute L2 distance**는 세 Seed 모두 `Conv1 < Conv2 < Conv3 < Conv4`였다: Seed 42 `1.18/12.32/33.25/68.57`, Seed 123 `1.68/14.04/34.88/68.54`, Seed 2026 `1.55/11.80/32.31/68.25`. 이는 깊은 층일수록 parameter 수가 증가하는 영향도 포함한다. 크기를 정규화한 relative L2에서는 깊은 Conv가 Conv1보다 대체로 컸지만 엄격한 단조 순서는 아니었고, Epoch 30에는 Conv3가 Conv4보다 큰 경우가 반복됐다. 따라서 깊은 layer에서 더 큰 trajectory separation이 관찰됐다고는 할 수 있으나, 깊이 자체가 원인이라고 단정하지 않는다.
+Epoch 30 Conv kernel의 **absolute L2 distance**는 세 Seed 모두 `Conv1 < Conv2 < Conv3 < Conv4`였다: Seed 42 `1.18/12.32/33.25/68.57`, Seed 123 `1.68/14.04/34.88/68.54`, Seed 2026 `1.55/11.80/32.31/68.25`. Canonical relative L2도 Seed 42 `.303/.798/1.123/1.278`, Seed 123 `.434/.916/1.161/1.276`, Seed 2026 `.409/.778/1.093/1.269`로 같은 순서였다. 깊은 layer에서 더 큰 trajectory separation이 관찰됐지만, absolute distance에는 parameter 수 영향도 있으며 깊이 자체가 원인이라고 단정하지 않는다.
 
 BN running state도 학습과 함께 분리됐다. 예를 들어 Epoch 30 BN4 running-mean relative L2는 Seed 42/123/2026에서 `1.264/1.206/1.009`였다. 이는 native BN state trajectory가 달라졌음을 보여주지만 BN을 성능 차이의 원인으로 확정하지 않으며 새 06에서 별도 격리가 필요하다.
 
@@ -264,4 +264,6 @@ Epoch 30 global weight relative L2는 세 Seed 모두 비슷한 `1.10–1.13` �
 
 반복 update를 거치며 Step 0→100과 Epoch 1→30에서 parameter trajectory는 지속적으로 분리됐다. Conv kernel의 absolute distance는 깊은 layer로 갈수록 증가했고 BN running state도 크게 분리됐다. 그러나 Epoch 30 train accuracy는 두 Framework가 거의 같았고, Best Validation checkpoint의 평균 Macro F1도 Keras `47.41%`, PyTorch `47.39%`로 거의 같았다.
 
-따라서 Experiment 04에서 Framework 차이는 분류 성능의 일관된 절대 우열보다 **optimization trajectory와 generalization timing의 차이**에서 더 뚜렷하게 나타났다. 특히 Seed 2026의 late-stage degradation은 fixed Epoch 30 결과가 best-validation 결과와 크게 달라질 수 있음을 보여준다. Parameter distance와 performance gap도 단조 관계가 아니므로, 새 05 Common Adam control에서 optimizer implementation의 추가 amplification을 격리한다.
+따라서 Experiment 04에서 Framework 차이는 분류 성능의 일관된 절대 우열보다 **optimization trajectory와 generalization timing의 차이**에서 더 뚜렷하게 나타났다. 특히 Seed 2026의 late-stage degradation은 fixed Epoch 30 결과가 best-validation 결과와 크게 달라질 수 있음을 보여준다. Parameter distance와 performance gap도 단조 관계가 아니다.
+
+후속 Experiment 05에서 native Adam을 공통 구현으로 교체하자 초기 update divergence는 크게 감소했지만 Epoch 30 parameter separation은 04와 거의 비슷한 수준으로 다시 나타났다. 이는 Experiment 04에서 관찰한 native Adam 차이가 초기 amplification에 기여했을 가능성을 지지하지만, 장기 divergence의 단독 설명은 아니라는 방향으로 해석을 갱신한다. Common Adam 이후에도 BN running-state divergence가 남았으므로 다음 Experiment 06에서 직접 격리한다.

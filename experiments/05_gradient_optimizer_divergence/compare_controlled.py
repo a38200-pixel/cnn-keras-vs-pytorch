@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT))
 
 from common.controlled_config import SEEDS
 from experiment_config import RESULTS, config_hash
+from trajectory_from_checkpoints import generate_trajectories
 
 
 def read_csv(path):
@@ -22,6 +23,7 @@ def read_csv(path):
 def main() -> None:
     preflight = json.loads((RESULTS / "preflight/preflight_summary.json").read_text(encoding="utf-8"))
     if preflight.get("common_adam_precheck") != "VALID": raise RuntimeError("Common Adam preflight is not VALID")
+    trajectory_files = [str(path.relative_to(RESULTS)) for path in generate_trajectories()]
     diagnostics = {}
     for seed in SEEDS:
         first = json.loads((RESULTS / "first_step" / f"seed{seed}_summary.json").read_text(encoding="utf-8"))
@@ -36,7 +38,7 @@ def main() -> None:
     diagnostic_output = {
         "status": "VALID", "config_sha256": config_hash(),
         "interpretation": "Only native Adam implementation was replaced; gradient, BN, and backend differences remain.",
-        "by_seed": diagnostics,
+        "by_seed": diagnostics, "trajectory_files": trajectory_files,
     }
     path = RESULTS / "diagnostic_comparison_04_vs_05.json"
     path.write_text(json.dumps(diagnostic_output, indent=2) + "\n", encoding="utf-8")
@@ -54,7 +56,7 @@ def main() -> None:
                            "signed_mean_gap": statistics.mean(gaps),
                            "mean_absolute_paired_gap": statistics.mean(abs(value) for value in gaps)}
     output = RESULTS / "controlled_comparison_summary.json"
-    output.write_text(json.dumps({"status": "VALID", "config_sha256": config_hash(), "metrics": metrics, "diagnostics": diagnostics}, indent=2) + "\n", encoding="utf-8")
+    output.write_text(json.dumps({"status": "VALID", "config_sha256": config_hash(), "metrics": metrics, "diagnostics": diagnostics, "trajectory_files": trajectory_files}, indent=2) + "\n", encoding="utf-8")
     print(f"Saved completed comparison: {output}")
 
 

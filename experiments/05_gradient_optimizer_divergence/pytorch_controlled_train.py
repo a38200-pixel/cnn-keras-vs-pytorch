@@ -20,7 +20,7 @@ from common.seed_utils import seed_pytorch
 from experiment_config import CHECKPOINT_EPOCHS, LEARNING_RATE, MAX_EPOCHS, SEEDS, config_hash
 from experiment_utils import ensure_seed_available, evaluate_torch, require_preflight, save_checkpoint, write_history, write_result
 
-RUN_TRAINING = False
+RUN_TRAINING = True
 
 
 def train_seed(seed: int) -> None:

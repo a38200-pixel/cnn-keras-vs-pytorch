@@ -1,0 +1,65 @@
+{
+  "status": "VALID",
+  "config_sha256": "450cbd41350873c08d0bc6ca5f147d475fbd8764670706fdbf6926a78d4fca7d",
+  "metrics": {
+    "final_test_accuracy": {
+      "keras_mean": 0.44802541988197914,
+      "pytorch_mean": 0.4235133908306854,
+      "signed_mean_gap": -0.0245120290512937,
+      "mean_absolute_paired_gap": 0.0245120290512937
+    },
+    "final_macro_f1": {
+      "keras_mean": 0.41938365119283527,
+      "pytorch_mean": 0.39212899496997006,
+      "signed_mean_gap": -0.027254656222865253,
+      "mean_absolute_paired_gap": 0.028434847574214273
+    },
+    "final_test_loss": {
+      "keras_mean": 1.6328360264375976,
+      "pytorch_mean": 1.7952069207622345,
+      "signed_mean_gap": 0.16237089432463692,
+      "mean_absolute_paired_gap": 0.17115759275056605
+    },
+    "best_test_accuracy": {
+      "keras_mean": 0.4778332576789227,
+      "pytorch_mean": 0.4834316840671811,
+      "signed_mean_gap": 0.005598426388258415,
+      "mean_absolute_paired_gap": 0.019518837948252394
+    },
+    "best_macro_f1": {
+      "keras_mean": 0.45827989456882945,
+      "pytorch_mean": 0.44928312472776777,
+      "signed_mean_gap": -0.008996769841061661,
+      "mean_absolute_paired_gap": 0.01752300103700723
+    },
+    "best_test_loss": {
+      "keras_mean": 1.341075023177677,
+      "pytorch_mean": 1.3685036362579324,
+      "signed_mean_gap": 0.027428613080255387,
+      "mean_absolute_paired_gap": 0.027428613080255387
+    }
+  },
+  "diagnostics": {
+    "42": {
+      "gradient_relative_l2": 0.0009623036158326893,
+      "experiment04_native_update_relative_l2": 0.02942982068473618,
+      "experiment05_common_update_relative_l2": 0.023448969352963245,
+      "common_vs_native_update_ratio": 0.7967758147138521,
+      "step100_weight_relative_l2": 0.06712225959822576
+    },
+    "123": {
+      "gradient_relative_l2": 2.8336741016546065e-05,
+      "experiment04_native_update_relative_l2": 0.024755072343138694,
+      "experiment05_common_update_relative_l2": 0.0006329665680949423,
+      "common_vs_native_update_ratio": 0.025569166565993905,
+      "step100_weight_relative_l2": 0.04479276097536807
+    },
+    "2026": {
+      "gradient_relative_l2": 3.099092493975526e-05,
+      "experiment04_native_update_relative_l2": 0.0219712342591846,
+      "experiment05_common_update_relative_l2": 0.0028397771701546117,
+      "common_vs_native_update_ratio": 0.12924977889976774,
+      "step100_weight_relative_l2": 0.04793898945252593
+    }
+  }
+}
