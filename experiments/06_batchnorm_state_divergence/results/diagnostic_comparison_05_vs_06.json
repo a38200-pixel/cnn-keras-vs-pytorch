@@ -1,0 +1,51 @@
+{
+  "status": "VALID",
+  "config_sha256": "30027b92347ba69e28d358345630ca2eb4f0b46abbc82729010fc9806044036c",
+  "interpretation": "Only native BatchNorm semantics were replaced; backend reduction/autograd differences remain.",
+  "experiment05_bn1_forward_source": "Experiment 04 first-step trace; Experiment 05 has the identical pre-update native-BN forward path, W0, and input",
+  "by_seed": {
+    "42": {
+      "experiment05_bn1_output_relative_l2": 8.994408971137879e-08,
+      "experiment06_bn1_output_relative_l2": 9.800550917204968e-08,
+      "experiment05_bn_running_mean_relative_l2": 1.0055285256764835e-07,
+      "experiment06_bn_running_mean_relative_l2": 9.267070245404637e-08,
+      "experiment05_bn_running_variance_relative_l2": 3.149169644219492e-07,
+      "experiment06_bn_running_variance_relative_l2": 2.740067069524038e-09,
+      "experiment05_gradient_relative_l2": 0.0009623036158326893,
+      "experiment06_gradient_relative_l2": 8.493797603552603e-05,
+      "experiment05_update_relative_l2": 0.023448969352963245,
+      "experiment06_update_relative_l2": 0.002829656904409981,
+      "experiment05_step100_weight_relative_l2": 0.06712225959822576,
+      "experiment06_step100_weight_relative_l2": 0.06647470009811489
+    },
+    "123": {
+      "experiment05_bn1_output_relative_l2": 1.1329577331762145e-07,
+      "experiment06_bn1_output_relative_l2": 8.400952600194341e-08,
+      "experiment05_bn_running_mean_relative_l2": 8.700092249318968e-08,
+      "experiment06_bn_running_mean_relative_l2": 8.840134899665952e-08,
+      "experiment05_bn_running_variance_relative_l2": 3.1054563202311603e-07,
+      "experiment06_bn_running_variance_relative_l2": 0.0,
+      "experiment05_gradient_relative_l2": 2.8336741016546065e-05,
+      "experiment06_gradient_relative_l2": 7.85418197609825e-05,
+      "experiment05_update_relative_l2": 0.0006329665680949423,
+      "experiment06_update_relative_l2": 0.006166783718730741,
+      "experiment05_step100_weight_relative_l2": 0.04479276097536807,
+      "experiment06_step100_weight_relative_l2": 0.06542598748754513
+    },
+    "2026": {
+      "experiment05_bn1_output_relative_l2": 8.767185067925326e-08,
+      "experiment06_bn1_output_relative_l2": 9.260631597949351e-08,
+      "experiment05_bn_running_mean_relative_l2": 8.612125140109526e-08,
+      "experiment06_bn_running_mean_relative_l2": 1.0963888512241963e-07,
+      "experiment05_bn_running_variance_relative_l2": 3.198757955906815e-07,
+      "experiment06_bn_running_variance_relative_l2": 2.740294845214496e-09,
+      "experiment05_gradient_relative_l2": 3.099092493975526e-05,
+      "experiment06_gradient_relative_l2": 1.2381115849149318e-05,
+      "experiment05_update_relative_l2": 0.0028397771701546117,
+      "experiment06_update_relative_l2": 0.002840061631047213,
+      "experiment05_step100_weight_relative_l2": 0.04793898945252593,
+      "experiment06_step100_weight_relative_l2": 0.04827747427933634
+    }
+  },
+  "full_training_executed": false
+}

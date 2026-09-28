@@ -1,0 +1,32 @@
+{
+  "status": "VALID",
+  "steps": [
+    0,
+    1,
+    2,
+    5,
+    10,
+    20,
+    50,
+    100
+  ],
+  "config_sha256": "30027b92347ba69e28d358345630ca2eb4f0b46abbc82729010fc9806044036c",
+  "comparison_05_vs_06": {
+    "42": {
+      "experiment05_native_bn_step100_weight_relative_l2": 0.06712225959822576,
+      "experiment06_common_bn_step100_weight_relative_l2": 0.06647470009811489,
+      "common_bn_vs_native_bn_step100_ratio": 0.9903525372359784
+    },
+    "123": {
+      "experiment05_native_bn_step100_weight_relative_l2": 0.04479276097536807,
+      "experiment06_common_bn_step100_weight_relative_l2": 0.06542598748754513,
+      "common_bn_vs_native_bn_step100_ratio": 1.4606375240750051
+    },
+    "2026": {
+      "experiment05_native_bn_step100_weight_relative_l2": 0.04793898945252593,
+      "experiment06_common_bn_step100_weight_relative_l2": 0.04827747427933634,
+      "common_bn_vs_native_bn_step100_ratio": 1.0070607418027786
+    }
+  },
+  "full_training_executed": false
+}

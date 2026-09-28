@@ -131,13 +131,11 @@ Common Adam을 사용하자 첫 optimizer update에서의 Keras–PyTorch 차이
 
 따라서 native Adam implementation은 초기 divergence의 **amplification contributor**이지만 장기적인 cross-framework trajectory divergence를 단독으로 설명하지 못한다. Gradient, BatchNorm state, Metal/MPS backend numerical difference 등 다른 요인이 반복 학습 과정에서 계속 누적될 가능성이 남아 있으며 추가 격리가 필요하다.
 
-## Connection to Experiment 04 and Next Experiment
+## Connection to Experiments 04 and 06
 
 Experiment 04에서는 동일 W0/input에서 Conv1까지 exact였고 BN1에서 약 `1e−6`의 첫 비영 차이, 이후 gradient 차이, native Adam update 확대와 장기 trajectory separation을 관찰했다. Experiment 05에서는 Common Adam으로 초기 update 차이가 줄었지만 장기 separation의 대부분이 다시 나타났다. 현재 결과는 Framework difference를 하나의 optimizer 구현으로 설명하기보다 작은 numerical/gradient/state difference가 반복 학습을 통해 누적되는 과정으로 보는 해석과 더 잘 맞는다.
 
-다음 **Experiment 06 - BatchNorm State Divergence**의 질문은 다음과 같다.
-
-> Common Adam까지 적용한 상태에서 BatchNorm forward/statistics/state update까지 통제하면 남아 있는 trajectory 및 generalization divergence가 얼마나 감소하는가?
+후속 **Experiment 06 - BatchNorm State Divergence**도 Completed / VALID다. Common BN은 first-step BN running-variance discrepancy와 평균 gradient/update divergence를 크게 줄였지만, Epoch 30 global weight relative L2는 Experiment 05 `1.0952`, Experiment 06 `1.0976`으로 사실상 같았다. 이는 05에서 관찰된 큰 장기 BN-state distance가 native BN semantics 단독 원인의 증거라기보다 이미 분리된 trajectory의 downstream consequence를 일부 반영할 수 있음을 시사한다. Native Adam과 native BN semantics 어느 하나도 장기 divergence를 충분히 설명하지 못하며, 남은 multi-step numerical accumulation에는 추가 격리가 필요하다.
 
 ## Result Artifacts
 

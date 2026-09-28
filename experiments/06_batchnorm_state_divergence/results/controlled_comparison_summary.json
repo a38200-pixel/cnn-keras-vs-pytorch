@@ -1,0 +1,91 @@
+{
+  "status": "VALID",
+  "config_sha256": "30027b92347ba69e28d358345630ca2eb4f0b46abbc82729010fc9806044036c",
+  "metrics": {
+    "final_test_accuracy": {
+      "keras_mean": 0.4442426993493721,
+      "pytorch_mean": 0.44802541988197914,
+      "signed_mean_gap": 0.0037827205326070312,
+      "mean_absolute_paired_gap": 0.04978060220910879
+    },
+    "final_macro_f1": {
+      "keras_mean": 0.41286436149181455,
+      "pytorch_mean": 0.4243937802432207,
+      "signed_mean_gap": 0.011529418751406137,
+      "mean_absolute_paired_gap": 0.05685179453068081
+    },
+    "final_test_loss": {
+      "keras_mean": 1.6796130343904148,
+      "pytorch_mean": 1.5644139978650804,
+      "signed_mean_gap": -0.11519903652533436,
+      "mean_absolute_paired_gap": 0.16768736488647043
+    },
+    "best_test_accuracy": {
+      "keras_mean": 0.47662278710848843,
+      "pytorch_mean": 0.5009835073384779,
+      "signed_mean_gap": 0.02436072022998942,
+      "mean_absolute_paired_gap": 0.02436072022998942
+    },
+    "best_macro_f1": {
+      "keras_mean": 0.45775973562594885,
+      "pytorch_mean": 0.4797751545581001,
+      "signed_mean_gap": 0.022015418932151254,
+      "mean_absolute_paired_gap": 0.022015418932151254
+    },
+    "best_test_loss": {
+      "keras_mean": 1.3598063022218434,
+      "pytorch_mean": 1.318886975943366,
+      "signed_mean_gap": -0.0409193262784775,
+      "mean_absolute_paired_gap": 0.0409193262784775
+    }
+  },
+  "diagnostics": {
+    "42": {
+      "experiment05_bn1_output_relative_l2": 8.994408971137879e-08,
+      "experiment06_bn1_output_relative_l2": 9.800550917204968e-08,
+      "experiment05_bn_running_mean_relative_l2": 1.0055285256764835e-07,
+      "experiment06_bn_running_mean_relative_l2": 9.267070245404637e-08,
+      "experiment05_bn_running_variance_relative_l2": 3.149169644219492e-07,
+      "experiment06_bn_running_variance_relative_l2": 2.740067069524038e-09,
+      "experiment05_gradient_relative_l2": 0.0009623036158326893,
+      "experiment06_gradient_relative_l2": 8.493797603552603e-05,
+      "experiment05_update_relative_l2": 0.023448969352963245,
+      "experiment06_update_relative_l2": 0.002829656904409981,
+      "experiment05_step100_weight_relative_l2": 0.06712225959822576,
+      "experiment06_step100_weight_relative_l2": 0.06647470009811489
+    },
+    "123": {
+      "experiment05_bn1_output_relative_l2": 1.1329577331762145e-07,
+      "experiment06_bn1_output_relative_l2": 8.400952600194341e-08,
+      "experiment05_bn_running_mean_relative_l2": 8.700092249318968e-08,
+      "experiment06_bn_running_mean_relative_l2": 8.840134899665952e-08,
+      "experiment05_bn_running_variance_relative_l2": 3.1054563202311603e-07,
+      "experiment06_bn_running_variance_relative_l2": 0.0,
+      "experiment05_gradient_relative_l2": 2.8336741016546065e-05,
+      "experiment06_gradient_relative_l2": 7.85418197609825e-05,
+      "experiment05_update_relative_l2": 0.0006329665680949423,
+      "experiment06_update_relative_l2": 0.006166783718730741,
+      "experiment05_step100_weight_relative_l2": 0.04479276097536807,
+      "experiment06_step100_weight_relative_l2": 0.06542598748754513
+    },
+    "2026": {
+      "experiment05_bn1_output_relative_l2": 8.767185067925326e-08,
+      "experiment06_bn1_output_relative_l2": 9.260631597949351e-08,
+      "experiment05_bn_running_mean_relative_l2": 8.612125140109526e-08,
+      "experiment06_bn_running_mean_relative_l2": 1.0963888512241963e-07,
+      "experiment05_bn_running_variance_relative_l2": 3.198757955906815e-07,
+      "experiment06_bn_running_variance_relative_l2": 2.740294845214496e-09,
+      "experiment05_gradient_relative_l2": 3.099092493975526e-05,
+      "experiment06_gradient_relative_l2": 1.2381115849149318e-05,
+      "experiment05_update_relative_l2": 0.0028397771701546117,
+      "experiment06_update_relative_l2": 0.002840061631047213,
+      "experiment05_step100_weight_relative_l2": 0.04793898945252593,
+      "experiment06_step100_weight_relative_l2": 0.04827747427933634
+    }
+  },
+  "trajectory_files": [
+    "trajectory/seed42_weight_trajectory.csv",
+    "trajectory/seed123_weight_trajectory.csv",
+    "trajectory/seed2026_weight_trajectory.csv"
+  ]
+}

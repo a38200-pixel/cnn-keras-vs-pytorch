@@ -1,0 +1,132 @@
+{
+  "experiment": "06_batchnorm_state_divergence",
+  "common_bn_precheck": "VALID",
+  "full_training_ready": true,
+  "config_sha256": "30027b92347ba69e28d358345630ca2eb4f0b46abbc82729010fc9806044036c",
+  "checks": {
+    "parent_experiment05_valid": true,
+    "parent_keras_completed": true,
+    "parent_pytorch_completed": true,
+    "dataset": true,
+    "fixed_schedule": true,
+    "batchnorm_only_change": true,
+    "all_non_bn_controls_match_experiment05": true,
+    "tensorflow_gpu": true,
+    "pytorch_mps": true,
+    "parameter_count": true,
+    "keras_native_batchnorm_absent": true,
+    "pytorch_native_batchnorm_absent": true,
+    "first_step_seed42": true,
+    "early_steps_seed42": true,
+    "roundtrip_keras_42_0": true,
+    "roundtrip_pytorch_42_0": true,
+    "roundtrip_keras_42_1": true,
+    "roundtrip_pytorch_42_1": true,
+    "first_step_seed123": true,
+    "early_steps_seed123": true,
+    "roundtrip_keras_123_0": true,
+    "roundtrip_pytorch_123_0": true,
+    "roundtrip_keras_123_1": true,
+    "roundtrip_pytorch_123_1": true,
+    "first_step_seed2026": true,
+    "early_steps_seed2026": true,
+    "roundtrip_keras_2026_0": true,
+    "roundtrip_pytorch_2026_0": true,
+    "roundtrip_keras_2026_1": true,
+    "roundtrip_pytorch_2026_1": true,
+    "no_full_training_results": true
+  },
+  "errors": [],
+  "dataset_counts": {
+    "train": 10251,
+    "val": 2194,
+    "test": 2203
+  },
+  "checkpoint_roundtrip": [
+    {
+      "seed": 42,
+      "step": 0,
+      "framework": "keras",
+      "model_exact": true,
+      "optimizer_keys": 0
+    },
+    {
+      "seed": 42,
+      "step": 0,
+      "framework": "pytorch",
+      "model_exact": true,
+      "optimizer_keys": 0
+    },
+    {
+      "seed": 42,
+      "step": 1,
+      "framework": "keras",
+      "model_exact": true,
+      "optimizer_keys": 32
+    },
+    {
+      "seed": 42,
+      "step": 1,
+      "framework": "pytorch",
+      "model_exact": true,
+      "optimizer_keys": 32
+    },
+    {
+      "seed": 123,
+      "step": 0,
+      "framework": "keras",
+      "model_exact": true,
+      "optimizer_keys": 0
+    },
+    {
+      "seed": 123,
+      "step": 0,
+      "framework": "pytorch",
+      "model_exact": true,
+      "optimizer_keys": 0
+    },
+    {
+      "seed": 123,
+      "step": 1,
+      "framework": "keras",
+      "model_exact": true,
+      "optimizer_keys": 32
+    },
+    {
+      "seed": 123,
+      "step": 1,
+      "framework": "pytorch",
+      "model_exact": true,
+      "optimizer_keys": 32
+    },
+    {
+      "seed": 2026,
+      "step": 0,
+      "framework": "keras",
+      "model_exact": true,
+      "optimizer_keys": 0
+    },
+    {
+      "seed": 2026,
+      "step": 0,
+      "framework": "pytorch",
+      "model_exact": true,
+      "optimizer_keys": 0
+    },
+    {
+      "seed": 2026,
+      "step": 1,
+      "framework": "keras",
+      "model_exact": true,
+      "optimizer_keys": 32
+    },
+    {
+      "seed": 2026,
+      "step": 1,
+      "framework": "pytorch",
+      "model_exact": true,
+      "optimizer_keys": 32
+    }
+  ],
+  "full_training_executed": false
+}
