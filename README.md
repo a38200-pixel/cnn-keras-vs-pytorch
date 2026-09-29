@@ -31,7 +31,7 @@ TensorFlow 2.21.0과 tensorflow-metal 조합에서는 `libmetal_plugin.dylib` / 
 기존 CNN 구현 → Phase 1: 00–03 native/OFAT preliminary comparison
 → Phase 2: 04 common W0·input·batch·augmentation controlled baseline
 → 05 common Adam control 완료 → 06 common BN control 완료
-→ 07 backend reduction·autograd·multi-step numerical accumulation 추적
+→ 07 state re-synchronization one-step diagnostic 완료 → 08 layer-wise isolation
 → fixed Epoch 30 성능을 마지막 결과로 해석
 ```
 
@@ -141,9 +141,9 @@ Seed별 Gap은 `PyTorch metric_seed − Keras metric_seed`로 정의한다. `Sig
 |---|---|---|---|
 | 04 | [Common Initialization & Controlled Training](experiments/04_common_initialization_controlled_training/README.md) | **Completed / VALID** | W0·입력 exact, first-step·0–100-step·Epoch 30 controlled trajectory |
 | 05 | [Common Adam Optimizer Control](experiments/05_gradient_optimizer_divergence/README.md) | **Completed / VALID** | 동일 Common Adam으로 optimizer implementation만 통제, 30-epoch trajectory 분석 |
-| 06 | [BatchNorm State Divergence](experiments/06_batchnorm_state_divergence/README.md) | **Completed / VALID** | Common Adam 조건에서 BN forward/statistics/state update 통제, 30-epoch trajectory 분석 |
-| 07 | Numerical Accumulation Isolation | **Next** | backend reduction·autograd·per-layer gradient/update의 multi-step 누적 추적 |
-| 08 | Layer-by-Layer Training Trajectory | Pending | 저장된 checkpoint별 layer 비교 |
+| 06 | [Common BatchNorm Control](experiments/06_batchnorm_state_divergence/README.md) | **Completed / VALID** | Common Adam 조건에서 BN forward/statistics/state update 통제, 30-epoch trajectory 분석 |
+| 07 | [Multi-Step Divergence & State Re-Synchronization](experiments/07_multistep_state_resynchronization/README.md) | **Completed / VALID** | Free-running과 exact K/P-anchor re-sync one-step divergence 비교 |
+| 08 | [Layer-by-Layer Training Trajectory Analysis](experiments/08_layer_by_layer_trajectory/README.md) | **Next** | 07이 식별한 representative case의 activation·gradient·update stage 정밀 추적 |
 
 ### 12. Experiment Progress
 
@@ -157,9 +157,9 @@ Seed별 Gap은 `PyTorch metric_seed − Keras metric_seed`로 정의한다. `Sig
 | 03 | Augmentation | 구현 완료, strict sample-ID runtime 검증 | 3-Seed 완료 | VALID / Baseline 비교 및 history 분석 완료 |
 | 04 | Common Initialization & Controlled Training | 완료 / VALID | 3-Seed × 30 Epoch 완료 | Fixed/Best 성능·first/early/full trajectory 분석 완료 |
 | 05 | Common Adam Optimizer Control | 완료 / VALID | 3-Seed × 30 Epoch 완료 | First/early/epoch trajectory 및 Fixed/Best 성능 분석 완료 |
-| 06 | BatchNorm State Divergence | 완료 / VALID | 3-Seed × 30 Epoch 완료 | First/early/epoch trajectory 및 Fixed/Best 성능 분석 완료 |
-| 07 | Numerical Accumulation Isolation | 설계 예정 | 대기 | 다음 단계 |
-| 08 | Layer-by-Layer Training Trajectory | Placeholder | 대기 | 대기 |
+| 06 | Common BatchNorm Control | 완료 / VALID | 3-Seed × 30 Epoch 완료 | First/early/epoch trajectory 및 Fixed/Best 성능 분석 완료 |
+| 07 | Multi-Step Divergence & State Re-Synchronization | 완료 / VALID | Full Training 없음 | 21 free-running + 39 exact re-sync one-step probe 완료 |
+| 08 | Layer-by-Layer Training Trajectory Analysis | Placeholder | 대기 | Next: representative case layer isolation |
 
 ### 13. Baseline 3-Seed Results
 
@@ -206,6 +206,17 @@ Experiment 05의 [Common Adam 통제 실험](experiments/05_gradient_optimizer_d
 Experiment 06의 [Common BN 통제 실험](experiments/06_batchnorm_state_divergence/README.md)도 **Completed / VALID**다. Common BN은 first-step all-BN running-variance relative L2 평균을 `3.15e−7→1.83e−9`로 약 `99.42%` 줄였고, first-step gradient/update divergence도 평균 `82.79%/56.03%` 감소시켰다. 그러나 이 효과는 Step 5부터 유지되지 않았고 Step 100 global weight relative L2는 05 `.0533`, 06 `.0601`이었다. Epoch 30도 05 `1.0952`, 06 `1.0976`으로 사실상 같았다.
 
 06의 Epoch 30 train accuracy는 Keras/PyTorch `64.55/64.33%`로 유사했다. Fixed-final mean absolute paired gap은 Accuracy `4.98%p`, Macro F1 `5.69%p`였으며, 05의 `2.45/2.84%p`보다 증가했다. Best-validation 평균은 Accuracy `47.66/50.10%`, Macro F1 `45.78/47.98%`였고 세 Seed 모두 이 조건에서 PyTorch 값이 높았지만, 3 Seeds만으로 Framework 우열을 일반화하지 않는다. Native Adam implementation과 native BN semantics 어느 하나도 장기 trajectory divergence를 단독으로 설명하지 못했다.
+
+Experiment 07의 [state re-synchronization diagnostic](experiments/07_multistep_state_resynchronization/README.md)은 Experiment 06의 42개 checkpoint를 read-only로 재사용했다. 모든 39개 shared/K/P-anchor sync case가 exact였으며, free-running 21개와 re-synchronized 39개 one-step probe가 finite하게 완료됐다. Epoch 30 free-running global weight divergence는 one step 전후 `1.097571→1.097597`인 반면, full-state sync 후 새로 생성된 post-weight divergence는 K-anchor `3.78e−7`, P-anchor `8.67e−9`였다. 이는 accumulated state difference의 feedback amplification과 일치하지만 인과 증명은 아니다. Anchor/Seed별 local spike가 남아 Experiment 08의 layer-wise isolation이 필요하다.
+
+```text
+04 Same W0/Input → first numerical difference → gradient/update divergence → long-term separation
+05 Common Adam   → initial update divergence 감소 → long-term separation 유지
+06 Common BN     → native BN state-update 차이 대부분 제거 → long-term separation 유지
+07 Full-state re-sync → 새 one-step divergence는 매우 작음 → free-running accumulated divergence는 큼
+```
+
+따라서 native Adam과 native BatchNorm semantics 어느 하나도 장기 divergence를 단독으로 설명하지 못한다. Experiment 07은 full state가 같을 때 큰 separation이 매 step 새로 재생성되는 것은 아님을 보여주며, 현재 관찰은 작은 difference의 반복적인 state-dependent accumulation과 더 잘 일치한다.
 <!-- LAYER_RESULTS_END -->
 
 ### 16. 주요 발견
@@ -222,7 +233,9 @@ Experiment 04에서는 동일 W0/input에서 Conv1까지 exact였고 BN1부터 �
 
 Experiment 05에서는 Common Adam이 initial update divergence를 크게 줄였지만 long-term trajectory separation은 대부분 다시 나타났다. 따라서 현재 결과는 Framework difference를 하나의 optimizer 구현으로 설명하기보다 작은 numerical/gradient/state difference가 반복 학습으로 누적되는 과정으로 보는 해석과 더 잘 맞는다. 상세 early/epoch trajectory, Fixed/Best 결과와 연구질문 답변은 [Experiment 05 README](experiments/05_gradient_optimizer_divergence/README.md)에 기록했다.
 
-Experiment 06에서는 Common BN이 native BN running-state update discrepancy를 거의 제거하고 first-step divergence를 평균적으로 줄였지만, 감소는 몇 step 뒤 사라졌으며 Epoch 30 parameter separation은 05와 거의 같았다. 큰 장기 BN-state distance는 이미 분리된 trajectory의 downstream consequence를 일부 반영할 수 있다. 다음 단계에서는 Common Adam과 Common BN을 유지한 채 backend reduction, autograd, per-layer gradient/update propagation과 multi-step numerical accumulation을 직접 추적한다. 상세 결과는 [Experiment 06 README](experiments/06_batchnorm_state_divergence/README.md)에 기록했다.
+Experiment 06에서는 Common BN이 native BN running-state update discrepancy를 거의 제거하고 first-step divergence를 평균적으로 줄였지만, 감소는 몇 step 뒤 사라졌으며 Epoch 30 parameter separation은 05와 거의 같았다. 큰 장기 BN-state distance는 이미 분리된 trajectory의 downstream consequence를 일부 반영할 수 있다. 이 결과가 남긴 state feedback 질문은 Experiment 07에서 직접 진단했다. 상세 결과는 [Experiment 06 README](experiments/06_batchnorm_state_divergence/README.md)에 기록했다.
+
+Experiment 07에서는 exact full-state re-synchronization 뒤 새로 생성된 one-step weight divergence가 대부분 `1e−8–1e−6` 수준인 반면, free-running checkpoint에는 최대 약 `1.10`의 accumulated divergence가 유지됐다. 이는 H1의 accumulated state-dependent feedback과 전반적으로 강하게 일치한다. 반면 synchronized divergence가 late checkpoint에서 일관되게 증가하지 않아 global metric은 H2를 강하게 지지하지 않았다. Epoch 20/30 일부 K-anchor/Seed의 local spike는 다음 layer-wise 분석에서 추가 격리가 필요하다.
 
 - Seed마다 우위가 바뀌면 framework 효과보다 stochastic variation이 큰 것으로 보고 H0를 기각하지 않는다.
 - 세 Seed에서 같은 방향의 gap이 반복되면 H1을 검토할 재현성 근거로 사용한다.
@@ -258,7 +271,7 @@ Experiment 06에서는 Common BN이 native BN running-state update discrepancy�
 
 ### 20. Future Work
 
-Forward & Loss analysis는 04 diagnostics로 충족했고, 05 Common Adam과 06 Common BN control의 3-Seed full training 및 trajectory 분석까지 완료했다. 다음 단계는 두 semantics를 통제한 상태에서 backend reduction, autograd, per-layer gradient/update propagation과 multi-step numerical accumulation을 직접 추적하는 것이다. 더 많은 Seed·architecture·dataset 및 변수 조합의 factorial 실험도 후속 과제다.
+Forward & Loss analysis는 04 diagnostics로 충족했고, 05 Common Adam과 06 Common BN control의 full training, 07 full-state re-synchronization one-step diagnostic까지 완료했다. 다음 Experiment 08은 07에서 anchor/Seed sensitivity가 나타난 checkpoint를 대상으로 Conv/BN/ReLU/Pool/FC/Logits/Loss/Gradient/Update 순서의 차이 확대 지점을 추적한다. 더 많은 Seed·architecture·dataset 및 변수 조합의 factorial 실험도 후속 과제다.
 
 ### 21. Project Structure
 
@@ -268,7 +281,8 @@ experiments/00...03/    Phase 1 native/preliminary 실험 및 보존된 결과
 experiments/04_common_initialization_controlled_training/  완료된 Phase 2 controlled baseline·diagnostic·trajectory
 experiments/05_gradient_optimizer_divergence/  완료된 Common Adam 통제·diagnostic·trajectory
 experiments/06_batchnorm_state_divergence/  완료된 Common BN 통제·diagnostic·trajectory
-experiments/07...08/    남은 numerical accumulation 분석 roadmap
+experiments/07_multistep_state_resynchronization/  완료된 checkpoint-local state re-sync diagnostic
+experiments/08_layer_by_layer_trajectory/  layer-wise isolation roadmap (Next)
 scripts/                 학습 없는 실행환경/GPU 검증
 summary/                 전체 집계 및 README marker 갱신
 emotion_dataset/         물리적 train/val/test × 8 classes (Git 제외)
@@ -326,3 +340,12 @@ Phase 1 집계 도구는 00–03 결과만 다룬다. 04의 학습과 비교는 
 ```
 
 사전 검증과 first/early-step 진단은 Full Training 결과와 구분한다. 완료된 최종 성능은 fixed Epoch 30 primary와 best-validation secondary를 별도로 해석한다.
+
+Experiment 07은 full training을 수행하지 않으며 아래 순서로 Experiment 06 checkpoint clone에서 one-step diagnostic만 재생한다.
+
+```bash
+.venv-metal/bin/python experiments/07_multistep_state_resynchronization/resync_preflight.py
+.venv-metal/bin/python experiments/07_multistep_state_resynchronization/free_running_probe.py
+.venv-metal/bin/python experiments/07_multistep_state_resynchronization/resynchronized_probe.py
+.venv-metal/bin/python experiments/07_multistep_state_resynchronization/compare_resync.py
+```

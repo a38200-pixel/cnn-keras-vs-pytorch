@@ -174,11 +174,7 @@ Common BN은 first-step running-state update discrepancy의 대부분을 제거�
 
 ## Next Research Direction
 
-다음 질문은 다음과 같다.
-
-> Adam과 BatchNorm semantics를 통제한 상태에서 multi-step training 중 남은 numerical difference는 어디에서 누적되는가?
-
-후속 단계에서는 backend reduction, autograd, per-layer gradient/update propagation과 multi-step numerical accumulation을 더 직접적으로 추적한다.
+후속 [Experiment 07 - Multi-Step Divergence & State Re-Synchronization](../07_multistep_state_resynchronization/README.md)은 **Diagnostic Completed / VALID**다. Exact full-state sync 후 새로 생성된 one-step divergence는 후반 checkpoint에서 매우 작았지만 free-running accumulated divergence는 크게 유지됐다. 이는 state-dependent feedback과 강하게 일치하며, 남은 anchor-local sensitivity는 Experiment 08의 layer-wise isolation으로 연결한다.
 
 ## Result Artifacts and Metadata Note
 
