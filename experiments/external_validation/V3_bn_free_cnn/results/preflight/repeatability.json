@@ -1,0 +1,12 @@
+{
+  "v3_gpu_repeatability": "VALID",
+  "all_exact": true,
+  "all_within_qualified_tolerance": true,
+  "qualified_atol": 1e-12,
+  "qualified_rtol": 1e-07,
+  "comparisons": 30,
+  "cases": 3,
+  "reason": "all compared arrays were exact",
+  "config_sha256": "bb4b9cbb063ad2a78bf8452b2c12abdbdf2f116bd1fb4e59268d782a1b07af20",
+  "new_full_training_executed": false
+}

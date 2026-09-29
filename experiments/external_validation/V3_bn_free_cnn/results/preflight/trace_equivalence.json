@@ -1,0 +1,7 @@
+{
+  "v3_trace_equivalence": "VALID",
+  "all_exact": true,
+  "comparisons": 30,
+  "config_sha256": "bb4b9cbb063ad2a78bf8452b2c12abdbdf2f116bd1fb4e59268d782a1b07af20",
+  "new_full_training_executed": false
+}

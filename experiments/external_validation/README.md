@@ -25,8 +25,8 @@ Experiments 04–08의 코드, checkpoint, 결과 artifact와 [Phase 2 종합 �
 |---|---|---|---|---|
 | [V1 CPU-only 실행](V1_cpu_only/README.md) | 실행 장치 | Young AffectNet HQ, custom CNN+BN, Common Adam, Common BN, 동일 state/batch/case | Metal/MPS 없이도 수치 분기가 유지되는가? | **Completed / VALID** |
 | [V2 ResNet18 + BN](V2_resnet18_bn/README.md) | 아키텍처 | Young AffectNet HQ, GPU stack, Common Adam/BN, fixed batch | Residual architecture에서도 패턴이 유지되는가? | **Completed / VALID** |
-| [V3 BN-free CNN](V3_bn_free_cnn/README.md) | 정규화 아키텍처 | Small CNN 계열 및 통제 방법론 | BN이 없을 때 최초 진입점은 어디인가? | **Next** |
-| [V4 CIFAR-10](V4_cifar10/README.md) | Dataset/workload | 앞 단계에서 검증된 아키텍처 및 통제 방법론 | 독립 workload에서도 패턴이 유지되는가? | **Planned** |
+| [V3 BN-free CNN](V3_bn_free_cnn/README.md) | BatchNorm presence | Phase 2 custom CNN geometry, Young AffectNet HQ, GPU stack, Common Adam, fixed batch/W0 | BN만 제거하면 최초 진입점은 어디로 이동하는가? | **Completed / VALID** |
+| [V4 CIFAR-10](V4_cifar10/README.md) | Dataset/workload | 앞 단계에서 검증된 아키텍처 및 통제 방법론 | 독립 workload에서도 패턴이 유지되는가? | **Next** |
 
 각 validation에서는 가능한 한 한 종류의 요인만 변경한다. V2–V4는 한 번에 여러 요인이 바뀌지 않도록 앞 단계에서 검증된 설계를 기준으로 순차 확정한다.
 
@@ -45,7 +45,7 @@ Experiments 04–08의 코드, checkpoint, 결과 artifact와 [Phase 2 종합 �
 - TensorFlow CPU와 PyTorch CPU는 여전히 서로 다른 실행 스택이다.
 - 초기 검증 범위는 synchronized one-step이며 장기 학습이나 일반화 성능이 아니다.
 - 결과는 float32, 3개 초기 Seed 및 사용 가능한 checkpoint로 제한된다.
-- V3–V4 실행 전에는 추가 정렬 조건과 불가피한 혼란 변수를 별도로 문서화해야 한다.
+- V4 실행 전에는 추가 정렬 조건과 불가피한 혼란 변수를 별도로 문서화해야 한다.
 
 ## 진행 순서
 
@@ -66,18 +66,34 @@ V1은 CPU 배치, 기존 batch/state의 exact synchronization, framework 내부 
 
 V2는 동일 Metal/MPS GPU stack에서 custom CNN만 직접 구현한 semantic-equivalent ResNet18로 바꿨다. Framework별 trainable parameter는 각각 `11,180,616`개였고, 3개 Seed의 canonical state mapping 306/306개가 exact였다. 3/3 Seed 모두 stem Conv까지 exact였고 최초 차이는 `stem.bn.batch_mean`에서 나타나 custom CNN의 대응 진입점이 유지됐다. Initial one-step maximum-forward relative L2는 `4.09e-6–4.23e-6`이며 paired custom CNN보다 `7.03×–7.34×` 컸다. Residual Add는 최초 진입점이 아니었고, 최대 backward/gradient/update 위치는 architecture와 Seed에 따라 달라졌다. 따라서 최초 진입점보다 downstream propagation magnitude와 sensitivity pattern에서 architecture dependence가 더 뚜렷했다.
 
-## V1–V2 중간 종합 해석
+## V3 결과
+
+V3는 Phase 2 custom CNN의 Conv/Pool/GAP/Dense geometry, Conv `bias=False`, persisted Conv/Dense W0, fixed batch, Metal/MPS GPU와 CommonAdam을 유지하고 BN operation·gamma/beta·running state만 제거했다. Framework별 trainable parameter는 `421,864`개였고 3개 Seed의 24/24 parameter mapping 및 Phase 2 shared W0가 exact였다.
+
+3/3 Seed 모두 `input → Conv1–4 → ReLU1–4 → Pool1–4`의 13개 stage가 exact였고 first non-zero는 `gap`으로 이동했다. Maximum-forward relative L2는 `1.22e-7–2.21e-7`로 paired BN model의 `0.210×–0.382×`였다. First backward는 3/3 `logits`였으며 gradient/update 차이는 남았다. 따라서 tested GPU custom CNN의 first BN entry는 BN presence에 의존하지만, BN 제거가 cross-framework divergence 자체를 없애지는 않았다.
+
+## V1–V3 중간 종합 해석
 
 | 조건 | 모델 | 최초 비영 forward stage |
 |---|---|---|
 | Phase 2 GPU | Custom CNN + BN | BN1 batch mean (9/9 case) |
 | V1 CPU | Custom CNN + BN | Conv1 (9/9 case) |
 | V2 GPU | ResNet18 + BN | Stem BN batch mean (3/3 Seed) |
+| V3 GPU | Custom CNN, BN 없음 | GAP (3/3 Seed) |
 
-Exact first entry point는 execution stack에 민감했다. 한편 테스트한 GPU stack의 BN batch-mean entry는 두 architecture에서 반복됐지만, 이후 전파 크기와 최대 민감 위치는 architecture와 Seed에 따라 달랐다. 이는 관찰 범위를 구체화하는 결과이며 특정 backend, BatchNorm 또는 architecture를 root cause로 확정하지 않는다.
+Exact first entry point는 execution stack과 BN presence에 민감했다. 테스트한 GPU stack의 BN batch-mean entry는 두 BN architecture에서 반복됐고, BN을 제거하자 GAP로 지연됐다. 이후 전파 크기와 최대 민감 위치도 architecture와 Seed에 따라 달랐다. 이는 관찰 범위를 구체화하는 결과이며 특정 backend, BatchNorm, GAP 또는 architecture를 root cause로 확정하지 않는다.
 
-다음 V3의 격리 질문은 다음과 같다.
+## Future Work: Reduction Operator Isolation
 
-> Custom CNN과 GPU 실행환경을 그 밖에는 유지한 채 BatchNorm을 제거하면 최초 수치 차이는 어디로 이동하는가?
+Phase 2/V2의 GPU+BN 조건에서는 BN batch-mean reduction이, V3 BN-free GPU 조건에서는 Conv/ReLU/Pool이 모두 exact인 뒤 GAP가 first observed numerical difference였다. 이 공통점은 tested GPU stack에서 floating-point mean/summation reduction operation이 first numerical entry point와 관련될 **가능성**을 후속 가설로 남긴다.
 
-V3는 **Next**, V4 CIFAR-10 workload 검증은 **Planned**이며 아직 구현·실행 결과가 아니다.
+후속 operator-level microbenchmark에서는 동일한 exact tensor를 TensorFlow/Keras와 PyTorch에 입력하고 다음을 분리 비교할 수 있다.
+
+1. Spatial-axis `reduce_mean`
+2. `reduce_sum`
+3. BatchNorm batch mean
+4. Global Average Pooling
+
+Shape, reduction axis, tensor size, dtype을 통제하고 exact equality, max absolute difference 및 relative L2를 기록한다. 필요하면 CPU와 GPU execution stack을 나누어 비교한다. 다만 현재 실험은 reduction order, kernel implementation, graph fusion 또는 compiler lowering을 직접 계측하지 않았으므로 reduction이 root cause이거나 BN과 GAP가 동일한 내부 원인을 공유한다고 결론내리지 않는다.
+
+다음 단계는 독립 dataset/workload에서 적용 범위를 검증하는 V4 CIFAR-10이며 상태는 **Next**다. 이번 V3 작업에서는 V4를 구현하거나 실행하지 않았다.

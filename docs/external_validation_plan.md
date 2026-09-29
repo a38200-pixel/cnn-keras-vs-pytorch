@@ -14,8 +14,8 @@ Phase 2(Experiments 04–08)는 Young AffectNet HQ, custom CNN+BN, Metal/MPS, fl
 |---:|---|---|---|---|
 | V1 | CPU-only 실행 | 실행 장치/경로 | Experiment 08과 동일한 9개 synchronized one-step case | **Completed / VALID** |
 | V2 | ResNet18 + BatchNorm | 아키텍처 | 동일 GPU stack의 3-Seed initial synchronized one-step | **Completed / VALID** |
-| V3 | BatchNorm 없는 CNN | 정규화 아키텍처 | Diagnostic 전 설계·정렬 preflight | **Next** |
-| V4 | CIFAR-10 | Dataset/workload | Diagnostic 전 계획 및 data manifest | **Planned** |
+| V3 | BatchNorm 없는 CNN | BatchNorm presence | Phase 2 geometry/W0와 GPU stack을 유지한 3-Seed initial synchronized one-step | **Completed / VALID** |
+| V4 | CIFAR-10 | Dataset/workload | Diagnostic 전 계획 및 data manifest | **Next** |
 
 각 validation에서는 가능한 한 하나의 요인만 변경한다. 피할 수 없는 부수 차이는 limitation으로 명시한다.
 
@@ -50,7 +50,7 @@ Gate가 실패하면 diagnostic 근거는 보존하되 V1을 invalid/incomplete�
 
 V1은 테스트한 GPU 실행 경로와 CPU 실행을 구분하지만 TensorFlow와 PyTorch에 동일 backend를 제공하지는 않는다. 진입점이 유지되면 테스트 조건에서 장치 간 재현성을 지지한다. 진입점이 바뀌면 execution-stack sensitivity를 시사한다. 거의 또는 완전히 exact한 결과가 나온다면 제거된 GPU 경로가 해당 환경의 one-step 차이에 실질적으로 기여했을 가능성을 시사하지만, 고유 원인을 증명하지는 않는다.
 
-V3–V4는 구현 전에 각각의 preflight 명세를 확정해야 한다. 현재 승인된 External Validation 범위에는 Full Training이 없다.
+V4는 구현 전에 preflight 명세를 확정해야 한다. 현재 승인된 External Validation 범위에는 Full Training이 없다.
 
 ## V1 결과
 
@@ -62,8 +62,25 @@ V3–V4는 구현 전에 각각의 preflight 명세를 확정해야 한다. 현�
 
 동일 Metal/MPS GPU 실행환경과 fixed batch/Common Adam/Common BN을 유지하고 architecture만 직접 구현한 semantic-equivalent ResNet18로 변경했다. Framework별 trainable parameter는 `11,180,616`개였고 3개 Seed의 canonical state mapping 306/306개가 exact였다. 3개 Seed 모두 stem Conv는 exact였고 최초 비영 stage는 `stem.bn.batch_mean`이었다. Initial one-step maximum-forward relative L2는 `4.09e-6–4.23e-6`이었고, Custom CNN의 대응 maximum보다 Seed별 `7.03×–7.34×` 컸다. Residual Add는 최초 진입점이 아니었으며 downstream maximum의 위치와 크기는 architecture 및 Seed에 민감했다. 상세 결과와 metric 정의는 [V2 보고서](../experiments/external_validation/V2_resnet18_bn/README.md)에 정리했다.
 
-## V1–V2 중간 결론과 다음 격리 질문
+## V3 결과
 
-V1 CPU custom CNN은 9/9 case에서 Conv1, Phase 2 GPU custom CNN은 9/9 case에서 BN1 batch mean, V2 GPU ResNet18은 3/3 Seed에서 stem BN batch mean이 최초 비영 stage였다. 따라서 exact entry point는 execution stack에 민감하며, 테스트한 GPU의 BN batch-mean entry가 두 architecture에서 반복된 것과 downstream propagation이 architecture-dependent한 것을 함께 보고해야 한다. 어느 관찰도 특정 연산이나 backend의 보편적 인과성을 확정하지 않는다.
+Phase 2 custom CNN geometry와 Conv `bias=False`, Metal/MPS GPU, fixed batch, CommonAdam 및 Seed별 persisted Conv/Dense W0를 유지하고 BN operation·affine parameter·running state를 제거했다. Keras/PyTorch trainable parameter는 각각 `421,864`개였고 24/24 Seed-parameter mapping과 Phase 2 shared W0가 exact였다.
 
-V3의 질문은 **“Custom CNN과 GPU 실행환경을 그 밖에는 유지한 채 BatchNorm을 제거하면 최초 수치 차이는 어디로 이동하는가?”**이다. V3는 **Next**, 독립 dataset/workload를 다루는 V4는 **Planned** 상태를 유지한다.
+3개 Seed 모두 Conv1–4/ReLU1–4/Pool1–4까지 exact였고 first non-zero는 `gap`이었다. Exact prefix는 input 포함 13개 stage이며 maximum-forward relative L2는 `1.22e-7–2.21e-7`, paired BN model 대비 `0.210×–0.382×`였다. Backward first entry는 3/3 `logits`였고 gradient/CommonAdam update 차이는 남았다. 상세 결과는 [V3 보고서](../experiments/external_validation/V3_bn_free_cnn/README.md)에 정리했다.
+
+## V1–V3 중간 결론과 다음 검증
+
+V1 CPU custom CNN은 9/9 case에서 Conv1, Phase 2 GPU custom CNN은 9/9 case에서 BN1 batch mean, V2 GPU ResNet18은 3/3 Seed에서 stem BN batch mean, V3 GPU BN-free custom CNN은 3/3 Seed에서 GAP가 최초 비영 stage였다. 따라서 exact entry point는 execution stack과 BN presence에 민감하며, downstream propagation은 architecture와 Seed에도 민감하다. 어느 관찰도 특정 연산이나 backend의 보편적 인과성을 확정하지 않는다.
+
+V3 결과는 tested GPU BN entry가 BN presence에 의존한다는 가설을 지지하지만, divergence 자체는 GAP 이후 남았으므로 BN을 유일 원인으로 보는 해석을 한정한다. 독립 dataset/workload를 다루는 V4가 **Next**이며 이번 작업에서는 구현·실행하지 않았다.
+
+## Future Work 가설: Reduction Operator Isolation
+
+현재 GPU 관찰은 다음과 같다.
+
+- Phase 2/V2 + BN: first difference가 BN batch-mean reduction에서 반복 관찰됨
+- V3 BN-free: Conv/ReLU/Pool은 exact이고 first difference가 GAP에서 관찰됨
+
+따라서 floating-point mean/summation reduction operation과 first numerical entry point의 관련 가능성을 후속 가설로 둔다. 검증한다면 동일한 exact tensor를 양 framework에 입력하고 spatial-axis `reduce_mean`, `reduce_sum`, BatchNorm batch mean 및 Global Average Pooling을 operator-level microbenchmark로 비교한다. Shape, axis, tensor size, dtype을 고정하고 exact equality, max absolute difference, relative L2를 기록하며 CPU/GPU execution stack을 분리할 수 있다.
+
+이는 계획 후보일 뿐 현재 결과가 아니다. Reduction order, backend kernel implementation, graph fusion 및 compiler lowering은 아직 직접 계측하지 않았으며, reduction이 root cause이거나 BN과 GAP에 동일한 내부 원인이 있음을 증명하지 않았다.

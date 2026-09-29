@@ -1,0 +1,9 @@
+{
+  "v3_gpu_device_check": "VALID",
+  "tensorflow_actual_device": "/job:localhost/replica:0/task:0/device:GPU:0",
+  "pytorch_actual_device": "mps:0",
+  "silent_mps_cpu_fallback_enabled": false,
+  "errors": [],
+  "config_sha256": "bb4b9cbb063ad2a78bf8452b2c12abdbdf2f116bd1fb4e59268d782a1b07af20",
+  "new_full_training_executed": false
+}

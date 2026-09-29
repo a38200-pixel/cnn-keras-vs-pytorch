@@ -1,0 +1,18 @@
+stage_order,semantic_stage,keras_shape,pytorch_canonical_shape,keras_dtype,pytorch_dtype,shape_exact
+0,input,"[1, 128, 128, 3]","[1, 128, 128, 3]",float32,float32,True
+1,conv1,"[1, 128, 128, 32]","[1, 128, 128, 32]",float32,float32,True
+2,relu1,"[1, 128, 128, 32]","[1, 128, 128, 32]",float32,float32,True
+3,pool1,"[1, 64, 64, 32]","[1, 64, 64, 32]",float32,float32,True
+4,conv2,"[1, 64, 64, 64]","[1, 64, 64, 64]",float32,float32,True
+5,relu2,"[1, 64, 64, 64]","[1, 64, 64, 64]",float32,float32,True
+6,pool2,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+7,conv3,"[1, 32, 32, 128]","[1, 32, 32, 128]",float32,float32,True
+8,relu3,"[1, 32, 32, 128]","[1, 32, 32, 128]",float32,float32,True
+9,pool3,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+10,conv4,"[1, 16, 16, 256]","[1, 16, 16, 256]",float32,float32,True
+11,relu4,"[1, 16, 16, 256]","[1, 16, 16, 256]",float32,float32,True
+12,pool4,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+13,gap,"[1, 256]","[1, 256]",float32,float32,True
+14,fc128.preactivation,"[1, 128]","[1, 128]",float32,float32,True
+15,fc128.relu,"[1, 128]","[1, 128]",float32,float32,True
+16,logits,"[1, 8]","[1, 8]",float32,float32,True

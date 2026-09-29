@@ -1,0 +1,22 @@
+{
+  "validation": "V3 - BatchNorm-Free Custom CNN Validation",
+  "os": "macOS-26.6.2-arm64-arm-64bit",
+  "architecture": "arm64",
+  "python_version": "3.10.3",
+  "numpy_version": "2.0.2",
+  "tensorflow_version": "2.18.1",
+  "tensorflow_metal_version": "1.2.0",
+  "tensorflow_visible_gpus": [
+    "/physical_device:GPU:0"
+  ],
+  "tensorflow_actual_conv_device": "/job:localhost/replica:0/task:0/device:GPU:0",
+  "pytorch_version": "2.14.0",
+  "pytorch_mps_available": true,
+  "pytorch_actual_conv_device": "mps:0",
+  "pytorch_mps_fallback_env": "0",
+  "dtype": "float32",
+  "timestamp_utc": "2026-09-29T08:23:05.127315+00:00",
+  "git_commit_hash": "67e5aefe4e80af99c42a869afa59705f75fbae8a",
+  "config_sha256": "bb4b9cbb063ad2a78bf8452b2c12abdbdf2f116bd1fb4e59268d782a1b07af20",
+  "run_full_training": false
+}

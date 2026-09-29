@@ -1,0 +1,12 @@
+{
+  "v3_no_batchnorm_check": "VALID",
+  "checks": {
+    "keras_graph_has_no_batchnorm": true,
+    "pytorch_graph_has_no_batchnorm": true,
+    "keras_state_has_no_batchnorm": true,
+    "pytorch_state_has_no_batchnorm": true,
+    "keras_nontrainable_state_empty": true
+  },
+  "config_sha256": "bb4b9cbb063ad2a78bf8452b2c12abdbdf2f116bd1fb4e59268d782a1b07af20",
+  "new_full_training_executed": false
+}

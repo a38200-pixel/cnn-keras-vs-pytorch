@@ -1,0 +1,22 @@
+{
+  "v3_shared_w0_check": "VALID",
+  "v3_phase2_shared_parameter_w0": "VALID",
+  "source": "Experiment 04 persisted canonical initial weights",
+  "shared_parameters": [
+    "conv1/kernel",
+    "conv2/kernel",
+    "conv3/kernel",
+    "conv4/kernel",
+    "fc128/kernel",
+    "fc128/bias",
+    "logits/kernel",
+    "logits/bias"
+  ],
+  "checks": {
+    "phase2_shared_parameter_w0_seed42": true,
+    "phase2_shared_parameter_w0_seed123": true,
+    "phase2_shared_parameter_w0_seed2026": true
+  },
+  "config_sha256": "bb4b9cbb063ad2a78bf8452b2c12abdbdf2f116bd1fb4e59268d782a1b07af20",
+  "new_full_training_executed": false
+}
