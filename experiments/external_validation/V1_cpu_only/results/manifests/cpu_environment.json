@@ -1,0 +1,35 @@
+{
+  "study": "External Validation Study",
+  "validation": "V1 - CPU-only Execution Validation",
+  "os": "macOS-26.6.2-arm64-arm-64bit",
+  "architecture": "arm64",
+  "python_version": "3.10.3",
+  "tensorflow_version": "2.18.1",
+  "keras_version": "3.12.4",
+  "tensorflow_metal_installed": true,
+  "tensorflow_metal_version": "1.2.0",
+  "tensorflow_physical_devices": [
+    "/physical_device:CPU:0"
+  ],
+  "tensorflow_visible_devices": [
+    "/physical_device:CPU:0"
+  ],
+  "tensorflow_actual_execution_device": "/job:localhost/replica:0/task:0/device:CPU:0",
+  "pytorch_version": "2.14.0",
+  "torchvision_version": "0.29.0",
+  "pytorch_mps_available": false,
+  "pytorch_actual_execution_device": "cpu",
+  "numpy_version": "2.0.2",
+  "cpu_model": "arm",
+  "thread_settings": {
+    "tensorflow_intra_op": 1,
+    "tensorflow_inter_op": 1,
+    "pytorch_num_threads": 1,
+    "pytorch_inter_op_threads": 1
+  },
+  "float_dtype": "float32",
+  "timestamp_utc": "2026-09-29T07:00:17.348884+00:00",
+  "git_commit_hash": "0c9459f4fd6aab03080d084ae9f2930d2eabff6c",
+  "config_sha256": "82ace26141f061c527dfd0a9ceac366465b02b48578a65424c2aae8c4a96e3cb",
+  "run_full_training": false
+}

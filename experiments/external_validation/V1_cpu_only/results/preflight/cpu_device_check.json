@@ -1,0 +1,24 @@
+{
+  "validation": "V1_cpu_only",
+  "cpu_only_device_check": "VALID",
+  "devices": {
+    "tensorflow_actual_device": "/job:localhost/replica:0/task:0/device:CPU:0",
+    "pytorch_actual_device": "cpu",
+    "tensorflow_cpu_actual": true,
+    "pytorch_cpu_actual": true,
+    "tensorflow_visible_gpu_count": 0,
+    "tensorflow_logical_devices": [
+      "/device:CPU:0"
+    ],
+    "pytorch_mps_tensor_used": false
+  },
+  "thread_settings": {
+    "tensorflow_intra_op": 1,
+    "tensorflow_inter_op": 1,
+    "pytorch_num_threads": 1,
+    "pytorch_inter_op_threads": 1
+  },
+  "config_sha256": "82ace26141f061c527dfd0a9ceac366465b02b48578a65424c2aae8c4a96e3cb",
+  "errors": [],
+  "new_full_training_executed": false
+}

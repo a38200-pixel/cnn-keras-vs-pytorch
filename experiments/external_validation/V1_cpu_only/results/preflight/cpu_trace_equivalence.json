@@ -1,0 +1,18 @@
+{
+  "validation": "V1_cpu_only",
+  "cpu_trace_equivalence": "VALID",
+  "all_exact": true,
+  "comparisons": 126,
+  "metrics": [
+    "logits",
+    "loss",
+    "global_gradient",
+    "global_update",
+    "post_weight",
+    "post_bn_running_mean",
+    "post_bn_running_variance"
+  ],
+  "cases": 9,
+  "config_sha256": "82ace26141f061c527dfd0a9ceac366465b02b48578a65424c2aae8c4a96e3cb",
+  "new_full_training_executed": false
+}

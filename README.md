@@ -148,6 +148,19 @@ Seed별 Gap은 `PyTorch metric_seed − Keras metric_seed`로 정의한다. `Sig
 | 07 | [Multi-Step Divergence & State Re-Synchronization](experiments/07_multistep_state_resynchronization/README.md) | **Completed / VALID** | Free-running과 exact K/P-anchor re-sync one-step divergence 비교 |
 | 08 | [Layer-by-Layer Training Trajectory Analysis](experiments/08_layer_by_layer_trajectory/README.md) | **Completed / VALID** | 9개 exact-sync case의 forward·backward·Common Adam layer trace |
 
+#### 외부 타당성 검증 연구 (External Validation Study)
+
+External Validation은 완료된 Phase 2를 다시 여는 후속 번호 실험이 아니라, Phase 2 관찰이 execution device, architecture, normalization design과 dataset/workload를 바꿔도 유지되는지 검증하는 별도 단계다. Phase 2 결론과 04–08 artifacts는 변경하지 않는다. 전체 계획은 [External Validation Study](experiments/external_validation/README.md)와 [validation plan](docs/external_validation_plan.md)에 정리했다.
+
+| 검증 | 변경 요인 | 상태 | 핵심 질문 |
+|---|---|---|---|
+| V1 [CPU-only 실행](experiments/external_validation/V1_cpu_only/README.md) | 실행 장치/경로 | **Completed / VALID** | Metal/MPS 경로 제거 후 최초 수치 차이와 전파는 어떻게 달라지는가? |
+| V2 [ResNet18 + BN](experiments/external_validation/V2_resnet18_bn/README.md) | 아키텍처 | **Next** | 표준 residual architecture에서도 관련 패턴이 관찰되는가? |
+| V3 [BN-free CNN](experiments/external_validation/V3_bn_free_cnn/README.md) | BatchNorm 존재 여부 | **Planned** | BN이 없을 때 최초 수치 진입점은 어디인가? |
+| V4 [CIFAR-10](experiments/external_validation/V4_cifar10/README.md) | Dataset/workload | **Planned** | 독립 workload에서도 관련 패턴이 관찰되는가? |
+
+V1의 동일 9-case CPU 진단은 모든 유효성 gate를 통과했다. GPU Experiment 08의 최초 비영 stage가 9/9 `BN1 batch mean`이었던 것과 달리 CPU에서는 9/9 `Conv1`이었고, paired maximum-forward relative L2도 CPU가 `49.9×–148.6×` 컸다. 따라서 BN1 진입점 관찰은 테스트한 execution stack에 민감한 것으로 범위를 좁히되, exact synchronized boundary에서도 framework-native 수치 차이가 발생·전파될 수 있다는 더 넓은 발견은 유지한다.
+
 ### 12. Experiment Progress
 
 | ID | Experiment | 구현 | 3-Seed 학습 | 분석 |
@@ -163,6 +176,8 @@ Seed별 Gap은 `PyTorch metric_seed − Keras metric_seed`로 정의한다. `Sig
 | 06 | Common BatchNorm Control | 완료 / VALID | 3-Seed × 30 Epoch 완료 | First/early/epoch trajectory 및 Fixed/Best 성능 분석 완료 |
 | 07 | Multi-Step Divergence & State Re-Synchronization | 완료 / VALID | Full Training 없음 | 21 free-running + 39 exact re-sync one-step probe 완료 |
 | 08 | Layer-by-Layer Training Trajectory Analysis | 완료 / VALID | Full Training 없음 | 9 selected one-step trace 및 07 equivalence 완료 |
+| V1 | CPU-only Execution Validation | 완료 / VALID | Full Training 없음 | 동일 9-case synchronized CPU one-step 및 GPU 직접 비교 완료 |
+| V2–V4 | External architecture/normalization/workload validation | 계획 문서만 생성 | 실행 없음 | Planned |
 
 ### 13. Baseline 3-Seed Results
 
@@ -277,6 +292,8 @@ experiments/05_gradient_optimizer_divergence/  완료된 Common Adam 통제·dia
 experiments/06_batchnorm_state_divergence/  완료된 Common BN 통제·diagnostic·trajectory
 experiments/07_multistep_state_resynchronization/  완료된 checkpoint-local state re-sync diagnostic
 experiments/08_layer_by_layer_trajectory/  완료된 9-case layer-wise one-step diagnostic
+experiments/external_validation/  Phase 2 외적 타당성 검증(V1 diagnostic, V2–V4 plans)
+docs/external_validation_plan.md  External Validation 격리 원칙·순서·validity gate
 PHASE2_STRICT_CONTROLLED_CONCLUSION.md  완료된 Phase 2 종합 결론
 scripts/                 학습 없는 실행환경/GPU 검증
 summary/                 전체 집계 및 README marker 갱신
@@ -351,4 +368,11 @@ Experiment 08도 Full Training 없이 selected case의 layer trace만 수행한�
 .venv-metal/bin/python experiments/08_layer_by_layer_trajectory/layer_trace_preflight.py
 .venv-metal/bin/python experiments/08_layer_by_layer_trajectory/layer_trace.py
 .venv-metal/bin/python experiments/08_layer_by_layer_trajectory/summarize_trace.py
+```
+
+External Validation V1은 같은 9개 case를 single-thread CPU에서 one-step만 재생한다. 아래 두 명령 어디에도 Full Training loop는 없으며 `RUN_FULL_TRAINING=False` safety guard를 유지한다.
+
+```bash
+.venv-metal/bin/python experiments/external_validation/V1_cpu_only/src/v1_preflight.py
+.venv-metal/bin/python experiments/external_validation/V1_cpu_only/src/v1_trace.py
 ```
