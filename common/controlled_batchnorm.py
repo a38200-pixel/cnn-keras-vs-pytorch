@@ -53,7 +53,18 @@ def build_keras_common_bn_model():
                 centered = tf.subtract(inputs, mean)
             inverse_std = tf.math.rsqrt(tf.add(variance, self.epsilon))
             normalized = tf.multiply(centered, inverse_std)
-            return tf.add(tf.multiply(normalized, self.gamma), self.beta)
+            output = tf.add(tf.multiply(normalized, self.gamma), self.beta)
+            # Read-only diagnostic references.  Keeping the tensors produced by
+            # this invocation lets Experiment 08 inspect Common BN internals
+            # without executing a second forward/reduction.
+            self.last_trace = {
+                "input": inputs,
+                "batch_mean": mean,
+                "batch_variance": variance,
+                "x_hat": normalized,
+                "output": output,
+            }
+            return output
 
     inputs = layers.Input((IMAGE_SIZE, IMAGE_SIZE, 3), dtype="float32", name="input")
     x = inputs
@@ -103,10 +114,20 @@ def build_torch_common_bn_model():
                 centered = torch.sub(inputs, mean[None, :, None, None])
             inverse_std = torch.rsqrt(torch.add(variance, self.epsilon))
             normalized = torch.mul(centered, inverse_std[None, :, None, None])
-            return torch.add(
+            output = torch.add(
                 torch.mul(normalized, self.weight[None, :, None, None]),
                 self.bias[None, :, None, None],
             )
+            # Read-only diagnostic references; no additional BN forward is
+            # performed when Experiment 08 collects these values.
+            self.last_trace = {
+                "input": inputs,
+                "batch_mean": mean,
+                "batch_variance": variance,
+                "x_hat": normalized,
+                "output": output,
+            }
+            return output
 
     class ControlledCommonBNCNN(nn.Module):
         def __init__(self):

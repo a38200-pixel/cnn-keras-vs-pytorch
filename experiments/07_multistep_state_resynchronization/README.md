@@ -133,7 +133,7 @@ Full-state re-synchronization은 후반 checkpoint에서 새로 생성되는 one
 
 이 관찰은 학습 초기에 생성된 작은 numerical difference가 이후 model/optimizer/BN state를 바꾸고, 변경된 state가 다음 update로 반복 전달되는 accumulated state-dependent feedback과 강하게 일치한다. Native Adam이나 native BatchNorm semantics 어느 하나도 장기 divergence를 단독으로 설명하지 못한다는 Experiments 05–06의 결과와도 연결된다.
 
-그러나 Experiment 07은 유일한 인과 mechanism을 확정하지 않는다. Anchor-dependent local spike가 남아 있으며, 어떤 forward/backward/update stage에서 이 sensitivity가 생성·확대되는지는 layer-wise isolation이 필요하다.
+그러나 Experiment 07은 유일한 인과 mechanism을 확정하지 않는다. Anchor-dependent local spike의 forward/backward/update 위치는 후속 Experiment 08의 layer-wise isolation에서 분석했다.
 
 ## Limitations
 
@@ -148,9 +148,9 @@ Full-state re-synchronization은 후반 checkpoint에서 새로 생성되는 one
 
 주요 artifact는 `results/probe_batch_manifest.csv`, `results/preflight/resync_precheck.json`, `results/manifests/resync_state_manifest.csv`, `results/free_running/`, `results/resynchronized/`, `results/comparison/free_vs_resync_summary.csv`, `results/comparison/diagnostic_3seed_summary.json`이다.
 
-## Next Experiment
+## Follow-up Experiment
 
-Experiment 08 - Layer-by-Layer Training Trajectory Analysis에서는 다음 representative case를 우선 분석한다.
+후속 [Experiment 08 - Layer-by-Layer Training Trajectory Analysis](../08_layer_by_layer_trajectory/README.md)는 아래 representative case의 layer-wise diagnostic을 **Completed / VALID**로 마쳤다.
 
 1. Initial / shared anchor — 상대적으로 큰 synchronized 초기 divergence baseline
 2. Epoch 1 — representative low-divergence control
@@ -158,4 +158,6 @@ Experiment 08 - Layer-by-Layer Training Trajectory Analysis에서는 다음 repr
 4. Epoch 30 / Seed 2026 / K-anchor — late-stage local spike
 5. 동일 Epoch 30 Seed의 P-anchor — anchor control
 
-각 case에서 Conv → BN → ReLU → Pool → FC → Logits → Loss의 forward와 layer-wise gradient/update 순서로 divergence의 최초 발생·확대 위치를 추적한다.
+각 case의 Conv → BN → ReLU → Pool → FC → Logits → Loss와 layer-wise gradient/update를 추적한 결과, 9개 case 모두 Conv1까지 exact였고 최초 비영 차이는 BN1 batch mean에서 관찰됐다. Forward 차이는 계속 `1e-7` 규모였지만 backward/update의 최대 위치는 checkpoint와 anchor에 따라 달랐다. 이는 Experiment 07의 accumulated state-dependent feedback 해석과 연결되지만 특정 layer를 root cause로 확정하지 않는다.
+
+Experiments 04–08의 종합 해석과 종료 상태는 [Phase 2 final conclusion](../../PHASE2_STRICT_CONTROLLED_CONCLUSION.md)에 기록했다.

@@ -1,0 +1,41 @@
+{
+  "experiment": "08_layer_by_layer_trajectory",
+  "layer_trace_precheck": "VALID",
+  "selected_cases_ready": true,
+  "config_sha256": "572bd342da2cab481a61cbc6e5a5f2c84929d0e2124981ab7a4f4c7361da37d0",
+  "checks": {
+    "experiment07_preflight_valid": true,
+    "experiment07_fixed_batch_hash_exact": true,
+    "experiment07_sample_order_exact": true,
+    "fixed_batch_shape": true,
+    "fixed_batch_dtype": true,
+    "fixed_labels_shape": true,
+    "full_state_sync_seed42_initial_shared": true,
+    "full_state_sync_seed123_initial_shared": true,
+    "full_state_sync_seed2026_initial_shared": true,
+    "full_state_sync_seed42_epoch_001_keras": true,
+    "full_state_sync_seed42_epoch_001_pytorch": true,
+    "full_state_sync_seed123_epoch_030_keras": true,
+    "full_state_sync_seed123_epoch_030_pytorch": true,
+    "full_state_sync_seed2026_epoch_030_keras": true,
+    "full_state_sync_seed2026_epoch_030_pytorch": true,
+    "selected_case_count": true,
+    "epoch1_low_divergence_seed_is_data_driven": true
+  },
+  "errors": [],
+  "selected_case_count": 9,
+  "epoch1_control": {
+    "selection_rule": "minimum mean K/P-anchor synchronized post_weight_relative_l2",
+    "selected_seed": 42,
+    "scores": {
+      "42": 1.5092325341918188e-08,
+      "123": 1.905216640661485e-08,
+      "2026": 1.960836018724779e-08
+    }
+  },
+  "fixed_probe_batch_hash": "c3ef4b5c6cb842154ddb03fa6cdc175dd5ab4e69a1e02f2bbc5493c3e2a48e7c",
+  "experiment07_fixed_probe_batch_hash": "c3ef4b5c6cb842154ddb03fa6cdc175dd5ab4e69a1e02f2bbc5493c3e2a48e7c",
+  "full_state_sync_exact": true,
+  "new_full_training_executed": false,
+  "parent_checkpoints_modified": false
+}
