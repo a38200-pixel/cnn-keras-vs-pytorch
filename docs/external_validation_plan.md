@@ -13,9 +13,9 @@ Phase 2(Experiments 04–08)는 Young AffectNet HQ, custom CNN+BN, Metal/MPS, fl
 | 순서 | 검증 | 주요 변경 요인 | 초기 범위 | 상태 |
 |---:|---|---|---|---|
 | V1 | CPU-only 실행 | 실행 장치/경로 | Experiment 08과 동일한 9개 synchronized one-step case | **Completed / VALID** |
-| V2 | ResNet18 + BatchNorm | 아키텍처 | Diagnostic 전 설계·정렬 preflight | **Next** |
-| V3 | BatchNorm 없는 CNN | 정규화 아키텍처 | Diagnostic 전 설계·정렬 preflight | Planned |
-| V4 | CIFAR-10 | Dataset/workload | Diagnostic 전 계획 및 data manifest | Planned |
+| V2 | ResNet18 + BatchNorm | 아키텍처 | 동일 GPU stack의 3-Seed initial synchronized one-step | **Completed / VALID** |
+| V3 | BatchNorm 없는 CNN | 정규화 아키텍처 | Diagnostic 전 설계·정렬 preflight | **Next** |
+| V4 | CIFAR-10 | Dataset/workload | Diagnostic 전 계획 및 data manifest | **Planned** |
 
 각 validation에서는 가능한 한 하나의 요인만 변경한다. 피할 수 없는 부수 차이는 limitation으로 명시한다.
 
@@ -50,10 +50,20 @@ Gate가 실패하면 diagnostic 근거는 보존하되 V1을 invalid/incomplete�
 
 V1은 테스트한 GPU 실행 경로와 CPU 실행을 구분하지만 TensorFlow와 PyTorch에 동일 backend를 제공하지는 않는다. 진입점이 유지되면 테스트 조건에서 장치 간 재현성을 지지한다. 진입점이 바뀌면 execution-stack sensitivity를 시사한다. 거의 또는 완전히 exact한 결과가 나온다면 제거된 GPU 경로가 해당 환경의 one-step 차이에 실질적으로 기여했을 가능성을 시사하지만, 고유 원인을 증명하지는 않는다.
 
-V2–V4는 구현 전에 각각의 preflight 명세를 확정해야 한다. 현재 승인된 External Validation 범위에는 Full Training이 없다.
+V3–V4는 구현 전에 각각의 preflight 명세를 확정해야 한다. 현재 승인된 External Validation 범위에는 Full Training이 없다.
 
 ## V1 결과
 
 9개의 CPU-only case는 모든 validity gate를 통과했다. CPU의 최초 비영 forward stage는 9/9 case에서 Conv1이었고, Experiment 08 GPU에서는 9/9 case에서 BN1 batch mean이었다. CPU maximum-forward relative L2는 paired GPU 값보다 `49.9×–148.6×` 컸다.
 
 따라서 V1은 Phase 2의 최초 진입점 관찰 범위를 테스트한 execution stack으로 좁힌다. 동시에 통제된 framework 간 수치 차이의 전파를 외부 조건에서도 검증해야 한다는 더 넓은 연구 동기는 유지된다. 실제 layer/group 결과는 [V1 보고서](../experiments/external_validation/V1_cpu_only/README.md)에 정리했다.
+
+## V2 결과
+
+동일 Metal/MPS GPU 실행환경과 fixed batch/Common Adam/Common BN을 유지하고 architecture만 직접 구현한 semantic-equivalent ResNet18로 변경했다. Framework별 trainable parameter는 `11,180,616`개였고 3개 Seed의 canonical state mapping 306/306개가 exact였다. 3개 Seed 모두 stem Conv는 exact였고 최초 비영 stage는 `stem.bn.batch_mean`이었다. Initial one-step maximum-forward relative L2는 `4.09e-6–4.23e-6`이었고, Custom CNN의 대응 maximum보다 Seed별 `7.03×–7.34×` 컸다. Residual Add는 최초 진입점이 아니었으며 downstream maximum의 위치와 크기는 architecture 및 Seed에 민감했다. 상세 결과와 metric 정의는 [V2 보고서](../experiments/external_validation/V2_resnet18_bn/README.md)에 정리했다.
+
+## V1–V2 중간 결론과 다음 격리 질문
+
+V1 CPU custom CNN은 9/9 case에서 Conv1, Phase 2 GPU custom CNN은 9/9 case에서 BN1 batch mean, V2 GPU ResNet18은 3/3 Seed에서 stem BN batch mean이 최초 비영 stage였다. 따라서 exact entry point는 execution stack에 민감하며, 테스트한 GPU의 BN batch-mean entry가 두 architecture에서 반복된 것과 downstream propagation이 architecture-dependent한 것을 함께 보고해야 한다. 어느 관찰도 특정 연산이나 backend의 보편적 인과성을 확정하지 않는다.
+
+V3의 질문은 **“Custom CNN과 GPU 실행환경을 그 밖에는 유지한 채 BatchNorm을 제거하면 최초 수치 차이는 어디로 이동하는가?”**이다. V3는 **Next**, 독립 dataset/workload를 다루는 V4는 **Planned** 상태를 유지한다.

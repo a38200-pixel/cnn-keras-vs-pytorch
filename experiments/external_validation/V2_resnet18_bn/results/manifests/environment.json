@@ -1,0 +1,23 @@
+{
+  "validation": "V2 - ResNet18 + BatchNorm Architecture Validation",
+  "os": "macOS-26.6.2-arm64-arm-64bit",
+  "architecture": "arm64",
+  "python_version": "3.10.3",
+  "numpy_version": "2.0.2",
+  "tensorflow_version": "2.18.1",
+  "tensorflow_metal_version": "1.2.0",
+  "tensorflow_visible_gpus": [
+    "/physical_device:GPU:0"
+  ],
+  "tensorflow_actual_resnet_conv_device": "/job:localhost/replica:0/task:0/device:GPU:0",
+  "pytorch_version": "2.14.0",
+  "pytorch_mps_available": true,
+  "pytorch_actual_resnet_conv_device": "mps:0",
+  "pytorch_mps_fallback_env": "0",
+  "dtype": "float32",
+  "timestamp_utc": "2026-09-29T07:37:23.465183+00:00",
+  "git_commit_hash": "f4e5fc51d3e4e330fe7ea37d851a73fea8eac7d1",
+  "config_sha256": "c9079c1642154cc29bb341ec12e1e337655f22f86ec3bd515fde5a4aecb4a1d2",
+  "pretrained": false,
+  "run_full_training": false
+}

@@ -1,0 +1,174 @@
+stage_order,semantic_stage,keras_shape,pytorch_canonical_shape,keras_dtype,pytorch_dtype,shape_exact
+0,input,"[1, 128, 128, 3]","[1, 128, 128, 3]",float32,float32,True
+1,stem.conv,"[1, 64, 64, 64]","[1, 64, 64, 64]",float32,float32,True
+2,stem.bn.input,"[1, 64, 64, 64]","[1, 64, 64, 64]",float32,float32,True
+3,stem.bn.batch_mean,[64],[64],float32,float32,True
+4,stem.bn.batch_variance,[64],[64],float32,float32,True
+5,stem.bn.x_hat,"[1, 64, 64, 64]","[1, 64, 64, 64]",float32,float32,True
+6,stem.bn.output,"[1, 64, 64, 64]","[1, 64, 64, 64]",float32,float32,True
+7,stem.relu,"[1, 64, 64, 64]","[1, 64, 64, 64]",float32,float32,True
+8,stem.maxpool,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+9,stage1.block1.input,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+10,stage1.block1.conv1,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+11,stage1.block1.bn1.input,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+12,stage1.block1.bn1.batch_mean,[64],[64],float32,float32,True
+13,stage1.block1.bn1.batch_variance,[64],[64],float32,float32,True
+14,stage1.block1.bn1.x_hat,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+15,stage1.block1.bn1.output,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+16,stage1.block1.relu1,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+17,stage1.block1.conv2,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+18,stage1.block1.bn2.input,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+19,stage1.block1.bn2.batch_mean,[64],[64],float32,float32,True
+20,stage1.block1.bn2.batch_variance,[64],[64],float32,float32,True
+21,stage1.block1.bn2.x_hat,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+22,stage1.block1.bn2.output,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+23,stage1.block1.main,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+24,stage1.block1.shortcut.identity,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+25,stage1.block1.add,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+26,stage1.block1.relu_out,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+27,stage1.block2.input,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+28,stage1.block2.conv1,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+29,stage1.block2.bn1.input,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+30,stage1.block2.bn1.batch_mean,[64],[64],float32,float32,True
+31,stage1.block2.bn1.batch_variance,[64],[64],float32,float32,True
+32,stage1.block2.bn1.x_hat,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+33,stage1.block2.bn1.output,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+34,stage1.block2.relu1,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+35,stage1.block2.conv2,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+36,stage1.block2.bn2.input,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+37,stage1.block2.bn2.batch_mean,[64],[64],float32,float32,True
+38,stage1.block2.bn2.batch_variance,[64],[64],float32,float32,True
+39,stage1.block2.bn2.x_hat,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+40,stage1.block2.bn2.output,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+41,stage1.block2.main,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+42,stage1.block2.shortcut.identity,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+43,stage1.block2.add,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+44,stage1.block2.relu_out,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+45,stage2.block1.input,"[1, 32, 32, 64]","[1, 32, 32, 64]",float32,float32,True
+46,stage2.block1.conv1,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+47,stage2.block1.bn1.input,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+48,stage2.block1.bn1.batch_mean,[128],[128],float32,float32,True
+49,stage2.block1.bn1.batch_variance,[128],[128],float32,float32,True
+50,stage2.block1.bn1.x_hat,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+51,stage2.block1.bn1.output,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+52,stage2.block1.relu1,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+53,stage2.block1.conv2,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+54,stage2.block1.bn2.input,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+55,stage2.block1.bn2.batch_mean,[128],[128],float32,float32,True
+56,stage2.block1.bn2.batch_variance,[128],[128],float32,float32,True
+57,stage2.block1.bn2.x_hat,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+58,stage2.block1.bn2.output,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+59,stage2.block1.main,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+60,stage2.block1.shortcut.conv,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+61,stage2.block1.shortcut.bn.input,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+62,stage2.block1.shortcut.bn.batch_mean,[128],[128],float32,float32,True
+63,stage2.block1.shortcut.bn.batch_variance,[128],[128],float32,float32,True
+64,stage2.block1.shortcut.bn.x_hat,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+65,stage2.block1.shortcut.bn.output,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+66,stage2.block1.shortcut.output,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+67,stage2.block1.add,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+68,stage2.block1.relu_out,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+69,stage2.block2.input,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+70,stage2.block2.conv1,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+71,stage2.block2.bn1.input,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+72,stage2.block2.bn1.batch_mean,[128],[128],float32,float32,True
+73,stage2.block2.bn1.batch_variance,[128],[128],float32,float32,True
+74,stage2.block2.bn1.x_hat,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+75,stage2.block2.bn1.output,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+76,stage2.block2.relu1,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+77,stage2.block2.conv2,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+78,stage2.block2.bn2.input,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+79,stage2.block2.bn2.batch_mean,[128],[128],float32,float32,True
+80,stage2.block2.bn2.batch_variance,[128],[128],float32,float32,True
+81,stage2.block2.bn2.x_hat,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+82,stage2.block2.bn2.output,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+83,stage2.block2.main,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+84,stage2.block2.shortcut.identity,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+85,stage2.block2.add,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+86,stage2.block2.relu_out,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+87,stage3.block1.input,"[1, 16, 16, 128]","[1, 16, 16, 128]",float32,float32,True
+88,stage3.block1.conv1,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+89,stage3.block1.bn1.input,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+90,stage3.block1.bn1.batch_mean,[256],[256],float32,float32,True
+91,stage3.block1.bn1.batch_variance,[256],[256],float32,float32,True
+92,stage3.block1.bn1.x_hat,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+93,stage3.block1.bn1.output,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+94,stage3.block1.relu1,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+95,stage3.block1.conv2,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+96,stage3.block1.bn2.input,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+97,stage3.block1.bn2.batch_mean,[256],[256],float32,float32,True
+98,stage3.block1.bn2.batch_variance,[256],[256],float32,float32,True
+99,stage3.block1.bn2.x_hat,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+100,stage3.block1.bn2.output,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+101,stage3.block1.main,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+102,stage3.block1.shortcut.conv,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+103,stage3.block1.shortcut.bn.input,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+104,stage3.block1.shortcut.bn.batch_mean,[256],[256],float32,float32,True
+105,stage3.block1.shortcut.bn.batch_variance,[256],[256],float32,float32,True
+106,stage3.block1.shortcut.bn.x_hat,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+107,stage3.block1.shortcut.bn.output,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+108,stage3.block1.shortcut.output,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+109,stage3.block1.add,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+110,stage3.block1.relu_out,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+111,stage3.block2.input,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+112,stage3.block2.conv1,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+113,stage3.block2.bn1.input,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+114,stage3.block2.bn1.batch_mean,[256],[256],float32,float32,True
+115,stage3.block2.bn1.batch_variance,[256],[256],float32,float32,True
+116,stage3.block2.bn1.x_hat,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+117,stage3.block2.bn1.output,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+118,stage3.block2.relu1,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+119,stage3.block2.conv2,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+120,stage3.block2.bn2.input,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+121,stage3.block2.bn2.batch_mean,[256],[256],float32,float32,True
+122,stage3.block2.bn2.batch_variance,[256],[256],float32,float32,True
+123,stage3.block2.bn2.x_hat,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+124,stage3.block2.bn2.output,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+125,stage3.block2.main,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+126,stage3.block2.shortcut.identity,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+127,stage3.block2.add,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+128,stage3.block2.relu_out,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+129,stage4.block1.input,"[1, 8, 8, 256]","[1, 8, 8, 256]",float32,float32,True
+130,stage4.block1.conv1,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+131,stage4.block1.bn1.input,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+132,stage4.block1.bn1.batch_mean,[512],[512],float32,float32,True
+133,stage4.block1.bn1.batch_variance,[512],[512],float32,float32,True
+134,stage4.block1.bn1.x_hat,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+135,stage4.block1.bn1.output,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+136,stage4.block1.relu1,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+137,stage4.block1.conv2,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+138,stage4.block1.bn2.input,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+139,stage4.block1.bn2.batch_mean,[512],[512],float32,float32,True
+140,stage4.block1.bn2.batch_variance,[512],[512],float32,float32,True
+141,stage4.block1.bn2.x_hat,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+142,stage4.block1.bn2.output,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+143,stage4.block1.main,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+144,stage4.block1.shortcut.conv,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+145,stage4.block1.shortcut.bn.input,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+146,stage4.block1.shortcut.bn.batch_mean,[512],[512],float32,float32,True
+147,stage4.block1.shortcut.bn.batch_variance,[512],[512],float32,float32,True
+148,stage4.block1.shortcut.bn.x_hat,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+149,stage4.block1.shortcut.bn.output,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+150,stage4.block1.shortcut.output,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+151,stage4.block1.add,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+152,stage4.block1.relu_out,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+153,stage4.block2.input,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+154,stage4.block2.conv1,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+155,stage4.block2.bn1.input,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+156,stage4.block2.bn1.batch_mean,[512],[512],float32,float32,True
+157,stage4.block2.bn1.batch_variance,[512],[512],float32,float32,True
+158,stage4.block2.bn1.x_hat,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+159,stage4.block2.bn1.output,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+160,stage4.block2.relu1,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+161,stage4.block2.conv2,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+162,stage4.block2.bn2.input,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+163,stage4.block2.bn2.batch_mean,[512],[512],float32,float32,True
+164,stage4.block2.bn2.batch_variance,[512],[512],float32,float32,True
+165,stage4.block2.bn2.x_hat,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+166,stage4.block2.bn2.output,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+167,stage4.block2.main,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+168,stage4.block2.shortcut.identity,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+169,stage4.block2.add,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+170,stage4.block2.relu_out,"[1, 4, 4, 512]","[1, 4, 4, 512]",float32,float32,True
+171,gap,"[1, 512]","[1, 512]",float32,float32,True
+172,classifier.logits,"[1, 8]","[1, 8]",float32,float32,True

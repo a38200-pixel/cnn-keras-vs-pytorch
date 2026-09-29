@@ -1,0 +1,12 @@
+{
+  "resnet18_architecture_equivalence": "VALID",
+  "checks": {
+    "semantic_trace_keys_exact": true,
+    "all_architecture_shapes_exact": true,
+    "downsample_branch_coverage": true
+  },
+  "semantic_stage_count": 173,
+  "errors": [],
+  "config_sha256": "c9079c1642154cc29bb341ec12e1e337655f22f86ec3bd515fde5a4aecb4a1d2",
+  "new_full_training_executed": false
+}

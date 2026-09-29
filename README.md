@@ -155,11 +155,13 @@ External Validation은 완료된 Phase 2를 다시 여는 후속 번호 실험�
 | 검증 | 변경 요인 | 상태 | 핵심 질문 |
 |---|---|---|---|
 | V1 [CPU-only 실행](experiments/external_validation/V1_cpu_only/README.md) | 실행 장치/경로 | **Completed / VALID** | Metal/MPS 경로 제거 후 최초 수치 차이와 전파는 어떻게 달라지는가? |
-| V2 [ResNet18 + BN](experiments/external_validation/V2_resnet18_bn/README.md) | 아키텍처 | **Next** | 표준 residual architecture에서도 관련 패턴이 관찰되는가? |
-| V3 [BN-free CNN](experiments/external_validation/V3_bn_free_cnn/README.md) | BatchNorm 존재 여부 | **Planned** | BN이 없을 때 최초 수치 진입점은 어디인가? |
+| V2 [ResNet18 + BN](experiments/external_validation/V2_resnet18_bn/README.md) | 아키텍처 | **Completed / VALID** | 동일 GPU stack에서 architecture만 변경하면 최초 수치 차이가 달라지는가? |
+| V3 [BN-free CNN](experiments/external_validation/V3_bn_free_cnn/README.md) | BatchNorm 존재 여부 | **Next** | BN이 없을 때 최초 수치 진입점은 어디인가? |
 | V4 [CIFAR-10](experiments/external_validation/V4_cifar10/README.md) | Dataset/workload | **Planned** | 독립 workload에서도 관련 패턴이 관찰되는가? |
 
 V1의 동일 9-case CPU 진단은 모든 유효성 gate를 통과했다. GPU Experiment 08의 최초 비영 stage가 9/9 `BN1 batch mean`이었던 것과 달리 CPU에서는 9/9 `Conv1`이었고, paired maximum-forward relative L2도 CPU가 `49.9×–148.6×` 컸다. 따라서 BN1 진입점 관찰은 테스트한 execution stack에 민감한 것으로 범위를 좁히되, exact synchronized boundary에서도 framework-native 수치 차이가 발생·전파될 수 있다는 더 넓은 발견은 유지한다.
+
+V2에서는 GPU stack을 다시 고정하고 architecture만 직접 구현한 ResNet18로 변경했다. 3/3 Seed 모두 stem Conv까지 exact였고 최초 비영 stage는 `stem.bn.batch_mean`으로 custom CNN의 대응 진입점이 유지됐다. 반면 paired initial one-step maximum-forward relative L2는 custom CNN보다 `7.03×–7.34×` 컸고 downstream sensitivity 위치도 달라졌다. 이 비율은 수치 전파 지표의 기술적 비교일 뿐 모델 품질이나 성능 우열을 뜻하지 않는다. V1/V2를 함께 보면 exact entry point는 execution stack에 민감하고, downstream propagation은 architecture와 Seed에도 민감하다는 중간 결론이 적절하다.
 
 ### 12. Experiment Progress
 
@@ -177,7 +179,8 @@ V1의 동일 9-case CPU 진단은 모든 유효성 gate를 통과했다. GPU Exp
 | 07 | Multi-Step Divergence & State Re-Synchronization | 완료 / VALID | Full Training 없음 | 21 free-running + 39 exact re-sync one-step probe 완료 |
 | 08 | Layer-by-Layer Training Trajectory Analysis | 완료 / VALID | Full Training 없음 | 9 selected one-step trace 및 07 equivalence 완료 |
 | V1 | CPU-only Execution Validation | 완료 / VALID | Full Training 없음 | 동일 9-case synchronized CPU one-step 및 GPU 직접 비교 완료 |
-| V2–V4 | External architecture/normalization/workload validation | 계획 문서만 생성 | 실행 없음 | Planned |
+| V2 | ResNet18 + BN Architecture Validation | 완료 / VALID | Full Training 없음 | 3-Seed initial synchronized GPU one-step 및 custom CNN 비교 완료 |
+| V3–V4 | Normalization/workload validation | 계획 문서만 생성 | 실행 없음 | V3 Next / V4 Planned |
 
 ### 13. Baseline 3-Seed Results
 
@@ -292,7 +295,7 @@ experiments/05_gradient_optimizer_divergence/  완료된 Common Adam 통제·dia
 experiments/06_batchnorm_state_divergence/  완료된 Common BN 통제·diagnostic·trajectory
 experiments/07_multistep_state_resynchronization/  완료된 checkpoint-local state re-sync diagnostic
 experiments/08_layer_by_layer_trajectory/  완료된 9-case layer-wise one-step diagnostic
-experiments/external_validation/  Phase 2 외적 타당성 검증(V1 diagnostic, V2–V4 plans)
+experiments/external_validation/  Phase 2 외적 타당성 검증(V1–V2 완료, V3–V4 plans)
 docs/external_validation_plan.md  External Validation 격리 원칙·순서·validity gate
 PHASE2_STRICT_CONTROLLED_CONCLUSION.md  완료된 Phase 2 종합 결론
 scripts/                 학습 없는 실행환경/GPU 검증
@@ -375,4 +378,12 @@ External Validation V1은 같은 9개 case를 single-thread CPU에서 one-step�
 ```bash
 .venv-metal/bin/python experiments/external_validation/V1_cpu_only/src/v1_preflight.py
 .venv-metal/bin/python experiments/external_validation/V1_cpu_only/src/v1_trace.py
+```
+
+V2도 Full Training 없이 3개 initial shared state의 GPU one-step만 수행한다.
+
+```bash
+.venv-metal/bin/python experiments/external_validation/V2_resnet18_bn/src/resnet18_preflight.py
+.venv-metal/bin/python experiments/external_validation/V2_resnet18_bn/src/resnet18_trace.py
+.venv-metal/bin/python experiments/external_validation/V2_resnet18_bn/src/compare_custom_vs_resnet18.py
 ```
