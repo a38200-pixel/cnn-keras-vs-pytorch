@@ -1,0 +1,24 @@
+{
+  "v4_epoch_order_check": "VALID",
+  "seeds": {
+    "42": {
+      "epochs": 30,
+      "all_sample_counts_exact": true,
+      "all_unique_counts_exact": true,
+      "manifest_sha256": "44fdc22a6edff6ef65025bc7a38af52ffba4d2000e17ce9e3d8778c0c86ce77a"
+    },
+    "123": {
+      "epochs": 30,
+      "all_sample_counts_exact": true,
+      "all_unique_counts_exact": true,
+      "manifest_sha256": "378f7c4ce6b5434cc0371aaf4ce8888388e3f30ae676be63f3d17f46ad1eb84e"
+    },
+    "2026": {
+      "epochs": 30,
+      "all_sample_counts_exact": true,
+      "all_unique_counts_exact": true,
+      "manifest_sha256": "675c0d1a2bc592e2571cdcc6223baa9fe8c055180032f5b599931c1c83319f79"
+    }
+  },
+  "config_sha256": "dd36a85c6e4b4a11508a65224e1a6e07629150dbe24180bfec327266311b5a8f"
+}

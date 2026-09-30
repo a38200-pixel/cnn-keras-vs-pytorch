@@ -1,0 +1,14 @@
+{
+  "framework": "keras",
+  "seed": 42,
+  "checkpoint_name": "epoch010",
+  "checkpoint_type": "epoch",
+  "epoch": 10,
+  "global_step": 14070,
+  "common_adam_step": 14070,
+  "capture_timing": "immediately_after_update",
+  "model_state_sha256": "10202564f3d11311ba4ad6329392f76f2b3657a6d7860fa01ef8082bbcca034f",
+  "split_hash": "334af14d1949eb80b4606f0d35cb919f7de22b0164ec4c255a51ef34e9a36c4a",
+  "epoch_order_manifest_hash": "44fdc22a6edff6ef65025bc7a38af52ffba4d2000e17ce9e3d8778c0c86ce77a",
+  "config_sha256": "dd36a85c6e4b4a11508a65224e1a6e07629150dbe24180bfec327266311b5a8f"
+}

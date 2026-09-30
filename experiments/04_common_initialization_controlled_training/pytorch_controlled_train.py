@@ -29,7 +29,7 @@ from common.controlled_training_utils import (
 from common.environment_utils import select_torch_device
 from common.seed_utils import seed_pytorch
 
-RUN_TRAINING = True
+RUN_TRAINING = False
 
 
 def evaluate(model, rows, seed: int, device):

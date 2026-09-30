@@ -1,0 +1,14 @@
+{
+  "framework": "keras",
+  "seed": 123,
+  "checkpoint_name": "step09630",
+  "checkpoint_type": "step",
+  "epoch": 7,
+  "global_step": 9630,
+  "common_adam_step": 9630,
+  "capture_timing": "immediately_after_update",
+  "model_state_sha256": "11ac1f5a714c4a78bbbd32e29016b911ceec456ed345213d88a6f7cfa67b4b9b",
+  "split_hash": "334af14d1949eb80b4606f0d35cb919f7de22b0164ec4c255a51ef34e9a36c4a",
+  "epoch_order_manifest_hash": "378f7c4ce6b5434cc0371aaf4ce8888388e3f30ae676be63f3d17f46ad1eb84e",
+  "config_sha256": "dd36a85c6e4b4a11508a65224e1a6e07629150dbe24180bfec327266311b5a8f"
+}

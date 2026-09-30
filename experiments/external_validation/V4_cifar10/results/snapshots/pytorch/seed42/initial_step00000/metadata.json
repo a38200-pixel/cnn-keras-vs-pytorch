@@ -1,0 +1,14 @@
+{
+  "framework": "pytorch",
+  "seed": 42,
+  "checkpoint_name": "initial_step00000",
+  "checkpoint_type": "initial",
+  "epoch": 0,
+  "global_step": 0,
+  "common_adam_step": 0,
+  "capture_timing": "initial",
+  "model_state_sha256": "5419476adc3e1abb0a785bd06055c12050f9ebb4e731c5cd16931fd5bab51c87",
+  "split_hash": "334af14d1949eb80b4606f0d35cb919f7de22b0164ec4c255a51ef34e9a36c4a",
+  "epoch_order_manifest_hash": "44fdc22a6edff6ef65025bc7a38af52ffba4d2000e17ce9e3d8778c0c86ce77a",
+  "config_sha256": "dd36a85c6e4b4a11508a65224e1a6e07629150dbe24180bfec327266311b5a8f"
+}

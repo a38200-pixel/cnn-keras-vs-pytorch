@@ -223,4 +223,4 @@ python -u experiments/external_validation/V3_bn_free_cnn/src/compare_bn_vs_bnfre
 
 V3의 GAP 관찰과 Phase 2/V2의 BN batch-mean 관찰은 reduction operator를 exact-tensor microbenchmark로 분리 검증할 후속 가설을 남긴다. 이는 reduction이 root cause이거나 BN과 GAP가 같은 내부 원인을 공유한다는 결론이 아니다. 구체적인 후보는 상위 External Validation 계획 문서에 기록했다.
 
-V4 CIFAR-10은 **Next**다. 독립 dataset/workload에서 관련 수치 분기 패턴이 유지되는지를 검증하며, 이번 V3 작업에서는 구현하거나 실행하지 않았다.
+V4 CIFAR-10 Independent Workload Validation은 **Completed / VALID**다. Stage A에서 3/3 Seeds의 first entry가 BN1 batch mean으로 관찰됐고 Stage B 6-run full training과 trajectory 분석도 완료됐다.

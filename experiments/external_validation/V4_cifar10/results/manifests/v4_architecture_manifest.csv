@@ -1,0 +1,38 @@
+stage_order,semantic_stage,keras_shape,pytorch_canonical_shape,keras_dtype,pytorch_dtype,shape_exact
+0,input,"[1, 32, 32, 3]","[1, 32, 32, 3]",float32,float32,True
+1,conv1,"[1, 32, 32, 32]","[1, 32, 32, 32]",float32,float32,True
+2,bn1.input,"[1, 32, 32, 32]","[1, 32, 32, 32]",float32,float32,True
+3,bn1.batch_mean,[32],[32],float32,float32,True
+4,bn1.batch_variance,[32],[32],float32,float32,True
+5,bn1.x_hat,"[1, 32, 32, 32]","[1, 32, 32, 32]",float32,float32,True
+6,bn1.output,"[1, 32, 32, 32]","[1, 32, 32, 32]",float32,float32,True
+7,relu1,"[1, 32, 32, 32]","[1, 32, 32, 32]",float32,float32,True
+8,pool1,"[1, 16, 16, 32]","[1, 16, 16, 32]",float32,float32,True
+9,conv2,"[1, 16, 16, 64]","[1, 16, 16, 64]",float32,float32,True
+10,bn2.input,"[1, 16, 16, 64]","[1, 16, 16, 64]",float32,float32,True
+11,bn2.batch_mean,[64],[64],float32,float32,True
+12,bn2.batch_variance,[64],[64],float32,float32,True
+13,bn2.x_hat,"[1, 16, 16, 64]","[1, 16, 16, 64]",float32,float32,True
+14,bn2.output,"[1, 16, 16, 64]","[1, 16, 16, 64]",float32,float32,True
+15,relu2,"[1, 16, 16, 64]","[1, 16, 16, 64]",float32,float32,True
+16,pool2,"[1, 8, 8, 64]","[1, 8, 8, 64]",float32,float32,True
+17,conv3,"[1, 8, 8, 128]","[1, 8, 8, 128]",float32,float32,True
+18,bn3.input,"[1, 8, 8, 128]","[1, 8, 8, 128]",float32,float32,True
+19,bn3.batch_mean,[128],[128],float32,float32,True
+20,bn3.batch_variance,[128],[128],float32,float32,True
+21,bn3.x_hat,"[1, 8, 8, 128]","[1, 8, 8, 128]",float32,float32,True
+22,bn3.output,"[1, 8, 8, 128]","[1, 8, 8, 128]",float32,float32,True
+23,relu3,"[1, 8, 8, 128]","[1, 8, 8, 128]",float32,float32,True
+24,pool3,"[1, 4, 4, 128]","[1, 4, 4, 128]",float32,float32,True
+25,conv4,"[1, 4, 4, 256]","[1, 4, 4, 256]",float32,float32,True
+26,bn4.input,"[1, 4, 4, 256]","[1, 4, 4, 256]",float32,float32,True
+27,bn4.batch_mean,[256],[256],float32,float32,True
+28,bn4.batch_variance,[256],[256],float32,float32,True
+29,bn4.x_hat,"[1, 4, 4, 256]","[1, 4, 4, 256]",float32,float32,True
+30,bn4.output,"[1, 4, 4, 256]","[1, 4, 4, 256]",float32,float32,True
+31,relu4,"[1, 4, 4, 256]","[1, 4, 4, 256]",float32,float32,True
+32,pool4,"[1, 2, 2, 256]","[1, 2, 2, 256]",float32,float32,True
+33,gap,"[1, 256]","[1, 256]",float32,float32,True
+34,fc128.preactivation,"[1, 128]","[1, 128]",float32,float32,True
+35,fc128.relu,"[1, 128]","[1, 128]",float32,float32,True
+36,logits,"[1, 10]","[1, 10]",float32,float32,True

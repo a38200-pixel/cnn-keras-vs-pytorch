@@ -4,6 +4,11 @@ __pycache__/
 .venv/
 .venv-metal/
 emotion_dataset/
+data/cifar10/
+experiments/external_validation/V4_cifar10/results/runtime/
+experiments/external_validation/V4_cifar10/results/resume/
+experiments/external_validation/V4_cifar10/results/snapshots/**/*.npz
+experiments/external_validation/V4_cifar10/results/training/**/*.npz
 experiments/*/results/*.keras
 experiments/*/results/*.pt
 experiments/*/archive/**/*.keras

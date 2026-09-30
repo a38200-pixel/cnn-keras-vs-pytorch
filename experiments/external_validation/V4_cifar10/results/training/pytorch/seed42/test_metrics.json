@@ -1,0 +1,19 @@
+{
+  "final": {
+    "epoch": 30,
+    "loss": 1.379180632352829,
+    "accuracy": 0.7546,
+    "macro_f1": 0.7559278030400296
+  },
+  "best_val": {
+    "epoch": 5,
+    "loss": 0.8031348909378052,
+    "accuracy": 0.7381,
+    "macro_f1": 0.7278543743057717
+  },
+  "framework": "pytorch",
+  "seed": 42,
+  "completed_epochs": 30,
+  "global_step": 42210,
+  "config_sha256": "dd36a85c6e4b4a11508a65224e1a6e07629150dbe24180bfec327266311b5a8f"
+}

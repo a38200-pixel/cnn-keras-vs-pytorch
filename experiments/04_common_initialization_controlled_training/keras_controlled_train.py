@@ -27,7 +27,7 @@ from common.controlled_training_utils import (
 )
 from common.seed_utils import seed_tensorflow
 
-RUN_TRAINING = True
+RUN_TRAINING = False
 
 
 def evaluate(model, rows, seed: int):

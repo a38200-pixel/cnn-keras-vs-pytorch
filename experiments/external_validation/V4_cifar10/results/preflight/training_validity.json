@@ -1,0 +1,12 @@
+{
+  "v4_training_config_equivalence": "VALID",
+  "v4_epoch_order_check": "VALID",
+  "v4_step_checkpoint_check": "VALID",
+  "v4_epoch_checkpoint_check": "VALID",
+  "v4_training_runs_complete": true,
+  "completed_runs": 6,
+  "v4_selected_checkpoints_complete": true,
+  "v4_test_evaluation_complete": true,
+  "nan_inf_found": false,
+  "config_sha256": "dd36a85c6e4b4a11508a65224e1a6e07629150dbe24180bfec327266311b5a8f"
+}

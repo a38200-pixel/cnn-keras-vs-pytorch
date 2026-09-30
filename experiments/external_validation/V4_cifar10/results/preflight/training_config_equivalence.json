@@ -1,0 +1,103 @@
+{
+  "v4_training_config_equivalence": "VALID",
+  "paired_framework_contract": "shared canonical state/split/order/batches/loss/CommonBN/CommonAdam",
+  "config": {
+    "validation": "V4_CIFAR10_independent_workload",
+    "workload": {
+      "dataset": "CIFAR-10",
+      "input": [
+        32,
+        32,
+        3
+      ],
+      "classes": 10,
+      "split_seed": 42,
+      "train": 45000,
+      "validation": 5000,
+      "test": 10000,
+      "preprocessing": "uint8_to_float32_div255",
+      "augmentation": null
+    },
+    "training": {
+      "epochs": 30,
+      "batch_size": 32,
+      "steps_per_epoch": 1407,
+      "total_steps": 42210,
+      "seeds": [
+        42,
+        123,
+        2026
+      ],
+      "shuffle": "persisted_numpy_permutation",
+      "drop_last": false,
+      "scheduler": null,
+      "early_stopping": false
+    },
+    "optimizer": {
+      "implementation": "CommonAdam",
+      "lr": 0.001,
+      "beta1": 0.9,
+      "beta2": 0.999,
+      "epsilon": 1e-07,
+      "weight_decay": 0.0,
+      "amsgrad": false,
+      "gradient_clipping": null
+    },
+    "batchnorm": {
+      "implementation": "CommonBN",
+      "epsilon": 0.001,
+      "variance": "population_ddof0",
+      "running_update_rate": 0.01
+    },
+    "dtype": "float32",
+    "epoch_snapshots": [
+      0,
+      1,
+      5,
+      10,
+      20,
+      30
+    ],
+    "step_snapshots": [
+      0,
+      321,
+      1605,
+      3210,
+      6420,
+      9630
+    ],
+    "run_stage_a_default": false,
+    "run_full_training_default": false
+  },
+  "checks": {
+    "split_manifest_valid": true,
+    "fixed_indices_exact": true,
+    "fixed_labels_exact": true,
+    "fixed_raw_hash_exact": true,
+    "fixed_tensor_hash_exact": true,
+    "fixed_shape_dtype": true,
+    "tensorflow_visible_gpu": true,
+    "pytorch_mps_available": true,
+    "mps_fallback_disabled": true,
+    "phase2_body_w0_seed42": true,
+    "paired_w0_seed42": true,
+    "adam_zero_seed42": true,
+    "phase2_body_w0_seed123": true,
+    "paired_w0_seed123": true,
+    "adam_zero_seed123": true,
+    "phase2_body_w0_seed2026": true,
+    "paired_w0_seed2026": true,
+    "adam_zero_seed2026": true,
+    "trainable_count_exact": true,
+    "nontrainable_count_exact": true,
+    "parameter_manifest_exact": true,
+    "semantic_stage_order_exact": true,
+    "architecture_shapes_exact": true,
+    "tensorflow_conv_gpu": true,
+    "pytorch_conv_mps": true,
+    "layout_roundtrip_exact": true
+  },
+  "errors": [],
+  "config_sha256": "dd36a85c6e4b4a11508a65224e1a6e07629150dbe24180bfec327266311b5a8f",
+  "new_full_training_executed": false
+}

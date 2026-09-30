@@ -1,400 +1,156 @@
-# Keras vs PyTorch CNN Framework Difference Analysis
+# Tracing Cross-Framework CNN Training Divergence
 
-## 동일 출발점에서 CNN 학습 과정의 Framework별 수치 분기 추적
+> **Project Status: Research experiments completed**
+>
+> **Experimental phase: Closed**
+>
+> No additional experiments are planned for this repository.
 
-### 1. 프로젝트 개요
+## 연구 제목
 
-기존 어린이 얼굴 감정 분류 프로젝트에서 동일한 최종 CNN의 Keras/PyTorch 성능 차이를 관찰했다. 00–03에서는 Framework별 native 조건을 탐색했고, 04부터는 동일한 W0·입력·배치·증강 결과 등 외부 조건을 통제해 **Forward → Loss → Gradient → Optimizer Update → BN State → 학습 trajectory 중 어디서 처음 수치적으로 달라지는지** 추적한다. 목적은 어느 Framework가 본질적으로 우수한지 순위를 매기는 것이 아니다. 기존 두 notebook과 00–03 결과는 보존한다.
+**엄격한 통제 조건에서 TensorFlow/Keras와 PyTorch 간 CNN 학습 수치 분기의 발생 위치와 누적 양상에 대한 실증 분석**
 
-### Experimental Environment
+Working title: *Tracing Cross-Framework CNN Training Divergence between TensorFlow/Keras and PyTorch under Strictly Controlled Conditions*
 
-00–08의 모든 실험은 아래 한 환경으로 고정한다. Framework 차이를 연구하는 동안 hardware, Python 또는 framework version이 바뀌면 새로운 혼란 변수가 생기기 때문이다.
+연구 분야는 Software Engineering for AI, cross-framework deep-learning reproducibility, numerical reproducibility of neural-network training과 empirical analysis of deep-learning software다. 이 프로젝트는 감정분류나 CIFAR-10의 성능 우위를 비교하는 연구가 아니다.
 
-| Category | Fixed environment |
-|---|---|
-| Hardware | MacBook Pro, Apple M1 Pro, 14-core GPU, Metal 4 |
-| Architecture | arm64 |
-| Project environment | `.venv-metal` |
-| Python | 3.10.3 |
-| TensorFlow / Keras | TensorFlow 2.18.1, Keras 3.12.4 |
-| TensorFlow backend | tensorflow-metal 1.2.0, Apple GPU `/GPU:0` |
-| PyTorch | PyTorch 2.14.0, torchvision 0.29.0 |
-| PyTorch backend | MPS, Apple M1 Pro GPU |
+## 연구 문제
 
-TensorFlow 2.21.0과 tensorflow-metal 조합에서는 `libmetal_plugin.dylib` / `_pywrap_tensorflow_internal.so` loading 호환성 문제가 있었다. 별도 `.venv-metal`에서 TensorFlow 2.18.1 + tensorflow-metal 1.2.0의 실제 GPU 연산을 검증했으며, 이후 이 환경을 최종 실행환경으로 고정했다. MPS의 미지원 연산을 조용히 CPU에서 실행시키는 `PYTORCH_ENABLE_MPS_FALLBACK=1`은 사용하지 않는다.
+> 동일한 CNN을 TensorFlow/Keras와 PyTorch에서 가능한 한 동일한 상태와 학습 조건으로 실행했을 때, 최초의 수치 차이는 어디에서 발생하고, 그 작은 차이가 학습 과정에서 어떻게 전파·누적되어 장기적인 training trajectory separation으로 이어지는가?
 
-### 2. 연구 배경
+Architecture 이름과 hyperparameter가 같아도 initialization, tensor/order, augmentation, loss reduction, optimizer, BatchNorm state와 backend execution은 다를 수 있다. 이 연구는 변수를 단계적으로 통제하고 `W0 → forward → loss → backward → update → state → long-term trajectory`를 추적했다.
 
-기존 단일 Seed 실험에서는 Keras와 PyTorch 사이에 성능 차이가 관찰됐다. 그러나 random initialization, data order, augmentation, optimizer와 framework 내부 구현의 영향을 단일 실행으로 분리할 수 없다. 00–03은 native 차이를 하나씩 살핀 preliminary OFAT이고, 04부터는 공통 초기 상태·입력·update 수에서 실제 학습 연산의 수치 분기를 추적한다.
+## 연구 구조와 최종 상태
 
-```text
-기존 CNN 구현 → Phase 1: 00–03 native/OFAT preliminary comparison
-→ Phase 2: 04 common W0·input·batch·augmentation controlled baseline
-→ 05 common Adam control 완료 → 06 common BN control 완료
-→ 07 state re-synchronization 완료 → 08 layer-wise isolation 완료
-→ Phase 2 Strict Controlled Framework Comparison 완료
-→ fixed Epoch 30 성능을 마지막 결과로 해석
-```
-
-### 3. Baseline 정의
-
-Baseline은 새로 만든 공통 CNN이 아니다. [Keras notebook](Keras_emotion_classification.ipynb)과 [PyTorch notebook](Pytorch_emotion_classification.ipynb)를 기반하여 **Final RGB CNN**을 framework별 구현 차이를 보존해 재구현한 것이다. 
-
-#### Baseline 구현 확인
-
-| 항목 | Keras 최종 notebook | PyTorch 최종 notebook | 확인 결과 |
+| Block | Experiments | Role | Status |
 |---|---|---|---|
-| 입력 | RGB NHWC, directory loader의 0–255 tensor 후 model 내부 `Rescaling(1/255)` | RGB NCHW, PIL `Resize` 후 `ToTensor` | 수치 변환 위치/layout이 다름 |
-| 증강 | `RandomFlip`, `RandomRotation(0.014)`; rotation 기본 reflect fill | `RandomHorizontalFlip(.5)`, `RandomRotation(5°, bilinear)`; 기본 zero fill | 각도는 약 ±5°지만 operator/fill/RNG가 다름 |
-| Conv | same padding, bias 없음, 32→64→128→256 | padding=1, bias 없음, 32→64→128→256 | 구조 일치 |
-| BN | Keras 기본 epsilon=.001, momentum=.99 | eps=.001, momentum=.01 | update 정의가 반대라 실질적으로 이미 대응됨 |
-| Head | GAP→Dense128+ReLU→Dense8+Softmax | GAP→Linear128→ReLU→Linear8 logits | output/loss 경로가 다름 |
-| Loss | sparse categorical cross-entropy (probability 입력) | cross-entropy (logits 입력) | 다름 |
-| Adam | lr=.001, 그 밖은 framework 기본값 | lr=.001, 그 밖은 framework 기본값 | 대표적으로 epsilon 기본값이 다름 |
-| Callback | ES 7, LR 4, min_delta=1e-4, best restore | 수동 ES 7, scheduler 4, threshold=1e-4, state restore | 의도는 같지만 scheduler patience epoch 정의가 다름 |
-| Dropout | 없음 | 없음 | 일치 |
+| Phase 1 | 00–03 | Preliminary Native Framework Comparison | Completed; pilot evidence only |
+| Phase 2 | 04–08 | Strict Controlled Experiments | **Completed / VALID** |
+| External Validation | V1–V4 | Device/architecture/BN/workload validation | **Completed** |
 
-Notebook의 최종 코드와 사용자 제공 설정은 구조, RGB 입력, batch 32, 최대 30 epochs, Adam lr=.001, Seed 42, augmentation, dropout 없음 및 patience에서 일치한다. Keras 총 parameter는 BN moving statistics를 포함해 423,784개이며 PyTorch trainable parameter는 422,824개다. 이 960개 차이는 Keras `count_params()`가 4개 BN의 non-trainable moving mean/variance도 세기 때문이다.
+Phase 1은 exact shared W0가 아니므로 causal framework comparison으로 해석하지 않는다. Input, batch order와 augmentation alignment가 native performance gap에 영향을 주는 것을 확인하고 strict control의 필요성을 제시한 pilot이다.
 
-### 4. 연구 목적
+Phase 2는 canonical W0, exact input/order/augmentation tensor, raw logits, mean sparse cross-entropy와 manual training loop를 사용했다. CommonAdam, CommonBN, full-state re-synchronization과 layer trace를 통해 초기 차이의 위치와 장기 누적을 분석했다.
 
-1. 기존 성능 차이의 3-Seed 재현성과 native 구현 조건을 탐색한다(Phase 1).
-2. 동일한 초기 가중치·입력 tensor·batch/augmentation schedule·update 수를 확립한다(Phase 2).
-3. Forward, Loss, Gradient, Adam update, BN state 중 첫 수치 차이와 그 크기를 추적한다.
-4. 그 차이가 고정 Epoch 30의 Accuracy/Macro F1과 어떻게 연결되는지 검토한다.
+External Validation은 V1 CPU, V2 ResNet18+BN, V3 BN-free custom CNN, V4 CIFAR-10 independent workload로 관찰 범위를 확장했다. 상세 상태는 [Experiment Status](docs/EXPERIMENT_STATUS.md)에 있다.
 
-### 5. Research Questions
+## Experimental Roadmap
 
-- **RQ1:** 기존 성능 차이는 Seed 42, 123, 2026에서 일관되게 반복되는가?
-- **RQ2:** Phase 1에서 Input Tensor·Batch Order·Augmentation 조건을 개별 정렬하면 native 성능 Gap은 어떻게 바뀌는가?
-- **RQ3:** Phase 2의 동일 W0·입력·batch에서 어느 연산부터 numerical difference가 관찰되는가?
-- **RQ4:** 첫 차이가 gradient/update/BN state와 30-epoch trajectory·최종 성능에서 어떻게 나타나는가?
+| ID | Experiment | Main question | Final status |
+|---|---|---|---|
+| 00 | [Baseline](experiments/00_baseline_final_cnn_3seed/README.md) | Native Keras/PyTorch gap은 반복되는가? | Preliminary / Completed |
+| 01 | [Input Tensor Alignment](experiments/01_input_tensor_alignment/README.md) | Input preprocessing 영향은 무엇인가? | Preliminary / Completed |
+| 02 | [Batch Order Alignment](experiments/02_batch_order_alignment/README.md) | Batch order 영향은 무엇인가? | Preliminary / Completed; Attempt 2 VALID |
+| 03 | [Augmentation Alignment](experiments/03_augmentation_alignment/README.md) | Augmentation schedule 영향은 무엇인가? | Preliminary / Completed / VALID |
+| 04 | [Common Initialization & Controlled Training](experiments/04_common_initialization_controlled_training/README.md) | Exact W0/input에서 divergence는 어떻게 시작·누적되는가? | Completed / VALID |
+| 05 | [Common Adam Optimizer Control](experiments/05_gradient_optimizer_divergence/README.md) | Native Adam 차이를 제거하면 얼마나 감소하는가? | Completed / VALID |
+| 06 | [Common BatchNorm Control](experiments/06_batchnorm_state_divergence/README.md) | Native BN semantics를 제거하면 얼마나 감소하는가? | Completed / VALID |
+| 07 | [Multi-Step & State Re-Synchronization](experiments/07_multistep_state_resynchronization/README.md) | Accumulated state와 새 one-step difference를 분리할 수 있는가? | Completed / VALID |
+| 08 | [Layer-by-Layer Trace](experiments/08_layer_by_layer_trajectory/README.md) | First entry와 propagation 위치는 어디인가? | Completed / VALID |
+| V1 | [CPU-only](experiments/external_validation/V1_cpu_only/README.md) | Entry point는 execution stack에 의존하는가? | Completed / VALID |
+| V2 | [ResNet18 + BN](experiments/external_validation/V2_resnet18_bn/README.md) | BN entry가 다른 architecture에서도 유지되는가? | Completed / VALID |
+| V3 | [BN-free CNN](experiments/external_validation/V3_bn_free_cnn/README.md) | BN이 없으면 first entry는 어디로 이동하는가? | Completed / VALID |
+| V4 | [CIFAR-10 Independent Workload](experiments/external_validation/V4_cifar10/README.md) | Initial entry와 long-term separation이 독립 workload에서도 관찰되는가? | Completed / VALID |
 
-### 6. Hypotheses
+## 핵심 결과
 
-- **H0 — Null:** 관찰된 차이는 stochastic variation 범위이며 3-Seed에서 일관된 framework gap이 나타나지 않을 것이다.
-- **H1 — Reproducibility:** 주요 구조와 hyperparameter가 같아도 framework-specific 구현 차이로 여러 Seed에서 같은 방향의 gap이 반복될 수 있다.
-- **H2 — Phase 1 Single-Factor Alignment:** 01–03의 개별 조건 정렬은 Baseline 대비 성능 Gap에 영향을 줄 수 있다.
-- **H3 — Phase 2 Numerical Divergence:** 동일 W0·input·label에서도 native 연산 이후 작은 numerical difference가 처음 관찰될 수 있으며, 이후 update·trajectory에서 변화할 수 있다. 첫 비영 차이를 곧바로 실용적으로 유의한 분기로 해석하지 않는다.
+### First observed entry matrix
 
-### 7. Dataset
+| Study | Architecture | BN | Workload | Execution | First observed entry |
+|---|---|---:|---|---|---|
+| Phase 2 | Custom CNN | Yes | Young AffectNet HQ | GPU Metal/MPS | BN1 batch mean |
+| V1 | Custom CNN | Yes | Young AffectNet HQ | CPU | Conv1 |
+| V2 | ResNet18 | Yes | Young AffectNet HQ | GPU Metal/MPS | stem BN batch mean |
+| V3 | Custom CNN | No | Young AffectNet HQ | GPU Metal/MPS | GAP |
+| V4 | Custom CNN | Yes | CIFAR-10 | GPU Metal/MPS | BN1 batch mean |
 
-현재 실제 경로는 명세의 `dataset/`이 아니라 `emotion_dataset/`이다. 이미지는 아래처럼 물리적으로 분할되어 있으며 코드는 `dataset/`과 `emotion_dataset/` 두 이름을 모두 탐색한다.
+Tested GPU+BN의 세 architecture/workload 조합에서 first BatchNorm batch-mean entry가 반복됐다. 그러나 CPU와 BN-free GPU에서는 entry가 이동했다. 따라서 BN batch mean은 테스트한 GPU+BN 조건의 reproducible **first observed entry point**지만 universal root cause는 아니다. First entry는 largest divergence나 low-level mechanism과도 동일하지 않다.
 
-```text
-emotion_dataset/
-├── train/{anger, contempt, disgust, fear, happy, neutral, sad, surprise}/
-├── val/{anger, contempt, disgust, fear, happy, neutral, sad, surprise}/
-└── test/{anger, contempt, disgust, fear, happy, neutral, sad, surprise}/
-```
+### Phase 2 strict-control findings
 
-| Class | Train | Val | Test | Total |
+- **Exp04:** Input과 Conv1 exact, BN1에서 약 `1e−7` first difference. E30 global weight relative L2 평균 `1.1155`.
+- **Exp05:** CommonAdam으로 first-update divergence 평균 `64.65%` 감소. E30 `1.0952`로 장기 separation은 유지.
+- **Exp06:** CommonBN으로 initial running-variance difference 약 `99.42%` 감소. E30 `1.0976`.
+- **Exp07:** E30 full-state sync 뒤 new one-step post-weight divergence는 평균 K-anchor `3.78e−7`, P-anchor `8.67e−9`.
+- **Exp08:** 9/9 synchronized cases에서 input/Conv1 exact, first non-zero는 BN1 batch mean. 후속 maximum은 state/anchor에 따라 달라짐.
+
+Native Adam은 early amplification contributor였고 native BN semantics는 initial state discrepancy에 기여했지만 어느 하나도 long-term separation의 sole explanation은 아니었다. Full-state re-sync 결과는 large free-running separation이 매 step 같은 크기로 새로 생성되기보다, 작은 차이가 weights·optimizer·BN state를 바꾸고 이후 계산에 재입력되는 **accumulated state-dependent feedback**과 더 잘 일치했다. 이는 causal proof가 아니다.
+
+### Long-term comparison
+
+| Study | Workload | Update budget | Global parameter separation | Generalization |
+|---|---|---:|---:|---|
+| Phase 2 | Young AffectNet HQ | 9,630 | 약 `1.10` | Seed/checkpoint dependent |
+| V4 step-matched | CIFAR-10 | 9,630 | `0.9416` | 이 step에서 final test 미평가 |
+| V4 E30 | CIFAR-10 | 42,210 | `1.1565` | Final mean K/P performance nearly equal |
+
+V4 same-update-budget distance는 Step 321/1,605/3,210/6,420/9,630에서 각각 `0.1677/0.4521/0.6345/0.8337/0.9416`이었다. 대응 Phase 2 값은 `0.1823/0.5522/0.7759/0.9915/1.0976`이었다. 독립 workload에서도 substantial separation이 나타났지만 exact magnitude는 workload-dependent였다.
+
+V4 E30 convolution distance는 3-Seed 평균 Conv1 `0.2880` < Conv2 `0.7847` < Conv3 `1.0903` < Conv4 `1.2481`이었다. 이 pattern은 deeper convolution group의 더 큰 relative separation을 기술할 뿐 Conv4나 depth를 원인으로 확정하지 않는다.
+
+### Parameter separation과 performance
+
+V4 E30 train accuracy는 Keras `98.296%`, PyTorch `98.359%`였지만 global relative L2는 `1.1565`였다. 30 epochs 전체의 mean absolute train accuracy gap은 `0.136%p`, validation accuracy gap은 `2.687%p`였다. Large parameter-space separation은 similar training fit과 공존했고 validation trajectory는 더 민감했다.
+
+| V4 Final E30 test | Keras | PyTorch | Signed P−K | Mean absolute paired gap |
 |---|---:|---:|---:|---:|
-| anger | 1,275 | 273 | 274 | 1,822 |
-| contempt | 1,283 | 274 | 276 | 1,833 |
-| disgust | 1,218 | 261 | 261 | 1,740 |
-| fear | 1,287 | 275 | 277 | 1,839 |
-| happy | 1,303 | 279 | 280 | 1,862 |
-| neutral | 1,316 | 282 | 282 | 1,880 |
-| sad | 1,274 | 273 | 274 | 1,821 |
-| surprise | 1,295 | 277 | 279 | 1,851 |
-| **Total** | **10,251** | **2,194** | **2,203** | **14,648** |
+| Accuracy | .76160 ± .02236 | .76243 ± .01147 | +.00083 | .01550 |
+| Macro F1 | .76251 ± .02020 | .76236 ± .01008 | −.00015 | .01523 |
 
-과거 split은 이번 검증 조건으로 사용하지 않는다. 현재 데이터 전체를 파일명 hash와 split seed 42로 **각 클래스별 고정 70/15/15**로 물리 분할했다: train 10,251, validation 2,194, test 2,203. 파일은 복제하지 않고 해당 폴더로 이동했으며 모든 framework와 실험 branch가 이 동일한 split을 직접 읽는다. `emotion_dataset/` 전체는 `.gitignore`로 Git 추적에서 제외한다.
+Seed별 방향은 교차했다. Best-validation loss checkpoint도 Seed별 K/P epoch가 `5/5`, `4/6`, `3/9`로 달랐다. 따라서 parameter reproducibility, training-fit similarity와 generalization optimum timing은 구분해야 하며 consistent framework superiority는 관찰되지 않았다.
 
-### 8. Baseline CNN Architecture
-
-| Stage | Operation | Output |
-|---|---|---|
-| Input | RGB | 128×128×3 |
-| Block 1 | Conv 3→32, 3×3, bias=False → BN → ReLU → MaxPool | 64×64×32 |
-| Block 2 | Conv 32→64 → BN → ReLU → MaxPool | 32×32×64 |
-| Block 3 | Conv 64→128 → BN → ReLU → MaxPool | 16×16×128 |
-| Block 4 | Conv 128→256 → BN → ReLU → MaxPool | 8×8×256 |
-| Head | GAP → Dense/Linear 256→128 → ReLU → 128→8 | 8 classes |
+## Final Conclusion
 
-Keras는 `padding="same"`, PyTorch는 `padding=1`을 사용한다.
+Exact shared initialization과 semantic alignment는 cross-framework bitwise numerical identity를 보장하지 않았다. FP-scale의 first difference는 forward/backward/update를 통해 state에 반영됐고 장기 parameter trajectories는 크게 분리됐다. Common optimizer와 BN semantics도 이를 완전히 제거하지 못했고, full-state re-sync 뒤 새 one-step discrepancy가 다시 작아졌다는 사실은 accumulated state-dependent feedback 설명과 가장 잘 맞았다.
 
-### 9. Experimental Methodology
+Entry point는 execution context와 operation composition에 의존했고 magnitude와 generalization path는 workload/Seed에 따라 달랐다. 큰 parameter-space distance가 큰 performance gap을 뜻하지 않았고 final mean performance도 거의 같았다. 이 연구는 특정 framework, BatchNorm, GAP, reduction 또는 backend의 우열·root cause를 증명하지 않는다.
 
-**Phase 1 (00–03)**은 Framework별 native 조건을 보존하거나 한 요인씩 정렬하는 preliminary OFAT다. **Phase 2 (04–08)**는 여러 외부 조건을 동시에 고정하는 strict controlled comparison이다. 04는 Phase 1 OFAT 표의 다음 행이 아니라 새로운 controlled baseline이다. 04부터 Accuracy/F1보다 W0→입력→activation→loss→gradient→update→BN state 순서를 먼저 분석한다.
+## Claim Boundary
 
-Seed별 Gap은 `PyTorch metric_seed − Keras metric_seed`로 정의한다. `Signed Mean Gap = mean(Gap_seed)`은 평균 우위 방향을, `Mean Absolute Paired Gap = mean(abs(Gap_seed))`은 Seed별 차이의 평균 크기를 나타낸다. 각 지표의 Gap Reduction은 `baseline gap − current gap`으로 계산한다. 양수는 Gap 감소, 0 근처는 영향이 작음, 음수는 Gap 증가를 뜻하며 Baseline gap이 거의 0이면 reduction rate는 N/A다.
+말할 수 있는 범위:
 
-### 10. 왜 누적 통제를 사용하지 않았는가?
+- first observed numerical entry와 controlled intervention 결과
+- cross-framework parameter/trajectory separation
+- state-dependent accumulation과 consistent한 evidence
+- execution-stack dependent entry와 workload-dependent magnitude
+- seed/checkpoint-dependent generalization 및 no consistent framework superiority
 
-이 원칙은 **Phase 1의 01–03에만** 적용된다. 각 branch가 00 Baseline으로 돌아가 한 요소만 정렬하므로 그 결과는 누적 실험이 아니다. Phase 2는 다른 질문—동일 출발점에서 첫 수치 분기 위치—에 답하기 위해 여러 조건을 동시에 고정한다. 03에서 augmentation stochastic parameter를 맞춘 뒤에도 Seed별 결과와 학습 dynamics가 달랐으므로, 04에서는 W0를 포함한 공통 초기 상태를 먼저 확립한다.
+말할 수 없는 범위:
 
-### 11. Experiment Plan
+- BN, GAP, reduction, Metal/MPS 또는 특정 layer가 unique root cause라는 주장
+- TensorFlow/Keras 또는 PyTorch가 본질적으로 더 정확·안정적이라는 주장
+- State-feedback causal mechanism의 완전한 증명
+- 모든 hardware/network/framework에 대한 일반화
+- CIFAR-10 dataset 자체가 divergence를 만들었다는 주장
 
-#### Phase 1 - Native / Preliminary Framework Comparison
+## Threats to Validity
 
-| ID | Experiment | Baseline 대비 변경 변수 | Seeds | 목적 |
-|---|---|---|---|---|
-| 00 | Baseline 3-Seed | 없음 | 42, 123, 2026 | 기존 성능 차이 재현성 확인 |
-| 01 | Input Tensor Alignment | Input Tensor | 42, 123, 2026 | 입력 처리 영향 확인 |
-| 02 | Batch Order Alignment | Batch Order | 42, 123, 2026 | Mini-batch 순서 영향 확인 |
-| 03 | Augmentation Alignment | Augmentation | 42, 123, 2026 | 증강 구현 영향 확인 |
+- 주요 Seeds 3개와 Apple M1 Pro 단일 hardware 중심
+- TensorFlow Metal과 PyTorch MPS 비교이며 CUDA/NVIDIA 미검증
+- Low-level reduction tree/kernel/compiler lowering 미계측
+- First non-zero는 bitwise break이며 practical significance와 동일하지 않음
+- V4는 pure dataset-only intervention이 아님
+- Young AffectNet HQ는 age-transformed derivative workload이며 raw image redistribution을 피해야 함
+- Phase 1은 exact shared W0가 아니며 causal comparison이 아님
+- Framework superiority 평가가 연구 목적이 아님
 
-#### Phase 2 - Strict Controlled Framework Comparison
+## Expected Contributions and Publication Direction
 
-> **Phase 2 Status: Completed.** 상세 종합 결론은 [Phase 2 - Strict Controlled Framework Comparison](PHASE2_STRICT_CONTROLLED_CONCLUSION.md)에 기록했다.
+기여는 strict controlled pipeline, CommonAdam/CommonBN intervention, full-state re-synchronization, layer-wise propagation trace, CPU/ResNet18/BN-free/CIFAR-10 external-validity matrix, independent-workload full training, manifest/hash 기반 reproducibility package다.
 
-| ID | Experiment | Status | Primary focus |
-|---|---|---|---|
-| 04 | [Common Initialization & Controlled Training](experiments/04_common_initialization_controlled_training/README.md) | **Completed / VALID** | W0·입력 exact, first-step·0–100-step·Epoch 30 controlled trajectory |
-| 05 | [Common Adam Optimizer Control](experiments/05_gradient_optimizer_divergence/README.md) | **Completed / VALID** | 동일 Common Adam으로 optimizer implementation만 통제, 30-epoch trajectory 분석 |
-| 06 | [Common BatchNorm Control](experiments/06_batchnorm_state_divergence/README.md) | **Completed / VALID** | Common Adam 조건에서 BN forward/statistics/state update 통제, 30-epoch trajectory 분석 |
-| 07 | [Multi-Step Divergence & State Re-Synchronization](experiments/07_multistep_state_resynchronization/README.md) | **Completed / VALID** | Free-running과 exact K/P-anchor re-sync one-step divergence 비교 |
-| 08 | [Layer-by-Layer Training Trajectory Analysis](experiments/08_layer_by_layer_trajectory/README.md) | **Completed / VALID** | 9개 exact-sync case의 forward·backward·Common Adam layer trace |
+현재 1차 논문 투고 목표는 **Journal of KIISE (JOK, 정보과학회논문지)**다. Software Engineering for AI와 empirical deep-learning software analysis 관점으로 구성하며 국제 venue는 future possibility로만 둔다.
 
-#### 외부 타당성 검증 연구 (External Validation Study)
+## Documentation and Artifact Navigation
 
-External Validation은 완료된 Phase 2를 다시 여는 후속 번호 실험이 아니라, Phase 2 관찰이 execution device, architecture, normalization design과 dataset/workload를 바꿔도 유지되는지 검증하는 별도 단계다. Phase 2 결론과 04–08 artifacts는 변경하지 않는다. 전체 계획은 [External Validation Study](experiments/external_validation/README.md)와 [validation plan](docs/external_validation_plan.md)에 정리했다.
+- [Final Research Report](docs/FINAL_RESEARCH_REPORT.md): 논문 작성 전 source-of-truth 해석 문서
+- [Final Results Summary](docs/FINAL_RESULTS_SUMMARY.md): 핵심 수치 중심 요약
+- [Experiment Status](docs/EXPERIMENT_STATUS.md): 전체 실험 상태표
+- [Phase 2 Final Conclusion](PHASE2_STRICT_CONTROLLED_CONCLUSION.md): Experiments 04–08 상세 결론
+- [External Validation Overview](experiments/external_validation/README.md): V1–V4 종합
+- [V4 Final Report](experiments/external_validation/V4_cifar10/README.md): CIFAR-10 Stage A/B 결과와 artifact index
 
-| 검증 | 변경 요인 | 상태 | 핵심 질문 |
-|---|---|---|---|
-| V1 [CPU-only 실행](experiments/external_validation/V1_cpu_only/README.md) | 실행 장치/경로 | **Completed / VALID** | Metal/MPS 경로 제거 후 최초 수치 차이와 전파는 어떻게 달라지는가? |
-| V2 [ResNet18 + BN](experiments/external_validation/V2_resnet18_bn/README.md) | 아키텍처 | **Completed / VALID** | 동일 GPU stack에서 architecture만 변경하면 최초 수치 차이가 달라지는가? |
-| V3 [BN-free CNN](experiments/external_validation/V3_bn_free_cnn/README.md) | BatchNorm 존재 여부 | **Completed / VALID** | BN 제거 후 3/3 Seed에서 first entry가 GAP로 이동하는가? |
-| V4 [CIFAR-10](experiments/external_validation/V4_cifar10/README.md) | Dataset/workload | **Next** | 독립 workload에서도 관련 패턴이 관찰되는가? |
+각 experiment의 `results/` 아래 CSV/JSON/manifest/history가 numerical source-of-truth다. Raw dataset과 대형 runtime/resume/checkpoint binary는 Git 공개 대상이 아니다. Dataset을 재배포하지 않는다.
 
-V1의 동일 9-case CPU 진단은 모든 유효성 gate를 통과했다. GPU Experiment 08의 최초 비영 stage가 9/9 `BN1 batch mean`이었던 것과 달리 CPU에서는 9/9 `Conv1`이었고, paired maximum-forward relative L2도 CPU가 `49.9×–148.6×` 컸다. 따라서 BN1 진입점 관찰은 테스트한 execution stack에 민감한 것으로 범위를 좁히되, exact synchronized boundary에서도 framework-native 수치 차이가 발생·전파될 수 있다는 더 넓은 발견은 유지한다.
+## Repository Closure
 
-V2에서는 GPU stack을 다시 고정하고 architecture만 직접 구현한 ResNet18로 변경했다. 3/3 Seed 모두 stem Conv까지 exact였고 최초 비영 stage는 `stem.bn.batch_mean`으로 custom CNN의 대응 진입점이 유지됐다. 반면 paired initial one-step maximum-forward relative L2는 custom CNN보다 `7.03×–7.34×` 컸고 downstream sensitivity 위치도 달라졌다. 이 비율은 수치 전파 지표의 기술적 비교일 뿐 모델 품질이나 성능 우열을 뜻하지 않는다. V1/V2를 함께 보면 exact entry point는 execution stack에 민감하고, downstream propagation은 architecture와 Seed에도 민감하다는 중간 결론이 적절하다.
-
-V3에서는 같은 GPU custom CNN에서 BN만 제거하자 3/3 Seed 모두 Conv/ReLU/Pool 전체가 exact였고 first entry가 GAP로 이동했다. Paired maximum-forward relative L2는 BN model의 `0.210×–0.382×`였지만 backward와 CommonAdam update 차이는 남았다. 이는 tested first BN entry의 BN-presence dependence를 지지하되 BN을 cross-framework divergence의 유일 원인으로 보는 해석은 한정한다.
-
-### 12. Experiment Progress
-
-| ID | Experiment | 구현 | 3-Seed 학습 | 분석 |
-|---|---|---|---|---|
-| ENV | `.venv-metal` 환경 | 완료 | - | GPU 연산 검증 완료 |
-| DATA | Dataset physical split | 완료 | - | 70/15/15 검증 완료 |
-| 00 | Baseline | 완료 | 완료 | 3-Seed 결과 분석 완료 |
-| 01 | Input Tensor | 완료, Input equality/GPU sanity 통과 | 완료 | Baseline 비교 및 history 분석 완료 |
-| 02 | Batch Order | Attempt 1 Invalid / Bug Fix 완료 | Attempt 2 VALID / 3-Seed 완료 | Runtime 검증 및 Baseline 분석 완료 |
-| 03 | Augmentation | 구현 완료, strict sample-ID runtime 검증 | 3-Seed 완료 | VALID / Baseline 비교 및 history 분석 완료 |
-| 04 | Common Initialization & Controlled Training | 완료 / VALID | 3-Seed × 30 Epoch 완료 | Fixed/Best 성능·first/early/full trajectory 분석 완료 |
-| 05 | Common Adam Optimizer Control | 완료 / VALID | 3-Seed × 30 Epoch 완료 | First/early/epoch trajectory 및 Fixed/Best 성능 분석 완료 |
-| 06 | Common BatchNorm Control | 완료 / VALID | 3-Seed × 30 Epoch 완료 | First/early/epoch trajectory 및 Fixed/Best 성능 분석 완료 |
-| 07 | Multi-Step Divergence & State Re-Synchronization | 완료 / VALID | Full Training 없음 | 21 free-running + 39 exact re-sync one-step probe 완료 |
-| 08 | Layer-by-Layer Training Trajectory Analysis | 완료 / VALID | Full Training 없음 | 9 selected one-step trace 및 07 equivalence 완료 |
-| V1 | CPU-only Execution Validation | 완료 / VALID | Full Training 없음 | 동일 9-case synchronized CPU one-step 및 GPU 직접 비교 완료 |
-| V2 | ResNet18 + BN Architecture Validation | 완료 / VALID | Full Training 없음 | 3-Seed initial synchronized GPU one-step 및 custom CNN 비교 완료 |
-| V3 | BN-free Custom CNN Validation | 완료 / VALID | Full Training 없음 | 3-Seed initial synchronized GPU one-step 및 BN paired 비교 완료 |
-| V4 | CIFAR-10 workload validation | 계획 문서만 유지 | 실행 없음 | Next |
-
-### 13. Baseline 3-Seed Results
-
-<!-- BASELINE_RESULTS_START -->
-| Metric | Keras (mean ± sample std) | PyTorch (mean ± sample std) | Signed Gap (PyTorch - Keras) |
-|---|---:|---:|---:|
-| Test Accuracy | 47.19 ± 2.18% | **51.17 ± 0.11%** | **+3.98%p** |
-| Macro F1 | 45.84 ± 2.45% | **50.08 ± 0.23%** | **+4.23%p** |
-| Test Loss | 1.3669 ± 0.0404 | **1.2733 ± 0.0181** | -0.0936 |
-
-세 Seed 모두 PyTorch가 Keras보다 높은 Accuracy와 Macro F1을 기록했다. 다만 이 결과를 framework 자체의 우월성으로 해석하지 않는다. 01–03은 native 조건의 개별 정렬을 탐색하며, 04부터는 동일 출발점의 수치 분기를 추적한다. 상세 결과는 [Experiment 00 README](experiments/00_baseline_final_cnn_3seed/README.md)에 기록했다.
-<!-- BASELINE_RESULTS_END -->
-
-### 14. Phase 1 Preliminary / Single-Factor Results
-
-<!-- ABLATION_RESULTS_START -->
-| Experiment | Aligned Variable | Keras F1 | PyTorch F1 | Signed Mean Gap | Mean Absolute Paired Gap | Status |
-|---|---|---:|---:|---:|---:|---|
-| 00 Baseline | None | 45.84% | 50.08% | 4.23%p | 4.23%p | Completed |
-| 01 Input | Input Tensor | 46.46% | 48.66% | 2.20%p | 3.91%p | Completed |
-| 02 Batch | Batch Order | 46.73% | 48.05% | 1.32%p | 3.17%p | Attempt 2 VALID |
-| 03 Augmentation | Augmentation | 43.15% | 45.46% | 2.31%p | 3.65%p | VALID |
-<!-- ABLATION_RESULTS_END -->
-
-Signed Mean Gap은 `mean(PyTorch - Keras)`, Mean Absolute Paired Gap은 `mean(abs(PyTorch - Keras))`다. Seed별 우위 방향이 바뀌면 signed 값이 상쇄될 수 있으므로 두 값을 함께 본다. Experiment 01–03은 서로 독립적인 Baseline branch다.
-
-Experiment 02 Attempt 1은 실제 order mismatch로 archive에 보존하고 공식 표에서 제외했다. Bug Fix 후 Attempt 2는 runtime에서 공통 수행한 모든 epoch의 전체 order hash가 일치해 `VALID` 판정을 받았으며, 위 Batch 행은 Attempt 2만 사용한다.
-
-Experiment 03은 strict sample-ID runtime augmentation validation이 `VALID`다. 공통 수행 epoch의 sample별 flip·rotation parameter hash가 모두 일치했지만, Framework별 회전 연산 결과가 pixel-exact라는 뜻은 아니다. 위 03 행은 실제 유효한 3-Seed 결과를 사용한다.
-
-### 15. Phase 2 Controlled Numerical Diagnostics
-
-<!-- LAYER_RESULTS_START -->
-Phase 2의 연구질문은 동일 CNN을 점차 엄격하게 통제할 때 first observed numerical difference가 어디에서 나타나고, 그것이 어떻게 장기 trajectory divergence로 이어지는지였다.
-
-```text
-04 Exact controlled baseline → Conv1 exact, BN1에서 first difference 관찰
-05 Common Adam              → early optimizer amplification 격리, 장기 separation 유지
-06 Common BN                → native BN state-update 차이 대부분 제거, 장기 separation 유지
-07 State re-synchronization → accumulated-state feedback 효과 격리
-08 Layer trace              → BN1 batch mean entry point와 state-dependent propagation 확인
-```
-
-9개 synchronized Experiment 08 case 모두 input과 Conv1 output은 exact였고, first non-zero numerical difference는 BN1 batch-mean reduction에서 반복됐다. Native Adam은 초기 difference를 일부 증폭했고 Common BN은 direct running-state discrepancy 대부분을 제거했지만 어느 하나도 Epoch 30의 약 `1.10` global parameter-space separation을 충분히 설명하지 못했다. Full-state sync 뒤 새 one-step divergence는 free-running accumulated divergence보다 여러 orders of magnitude 작았다.
-
-따라서 Phase 2 결과는 하나의 optimizer, BN implementation 또는 고정 layer보다, floating-point 규모의 작은 difference가 weights/optimizer/BN state에 반영되고 다음 step에서 반복 전달되는 **accumulated state-dependent feedback**과 가장 잘 맞는다. 이는 proven causal chain이 아니며 low-level backend mechanism과 Framework superiority를 확립하지 않는다. 전체 근거, performance/generalization 구분, 한계와 optional future directions는 [Phase 2 final conclusion](PHASE2_STRICT_CONTROLLED_CONCLUSION.md)을 참조한다.
-<!-- LAYER_RESULTS_END -->
-
-### 16. 주요 발견
-
-Baseline 3-Seed에서 같은 방향의 Framework Gap이 반복됐다. Accuracy 평균 Gap은 PyTorch 기준 +3.98%p, Macro F1 평균 Gap은 +4.23%p였으며, Keras의 Seed 변동성이 더 컸다. 이는 추가 원인 분석을 수행할 근거지만 framework 자체의 인과 효과를 확정하지 않는다.
-
-Experiment 01에서 augmentation 이전 deterministic input preprocessing을 동일화한 결과, Macro F1 Gap은 4.23%p에서 2.20%p로 48.02%, Accuracy Gap은 3.98%p에서 2.18%p로 45.25% 감소했다. 그러나 Keras Macro F1이 +0.61%p 상승한 것과 동시에 PyTorch Macro F1이 -1.42%p 하락했고, PyTorch의 Macro F1 표준편차가 0.23%p에서 3.72%p로 증가했다. Seed 42에서는 Keras가 PyTorch를 역전했다. 따라서 Input Tensor 처리는 Gap에 영향을 주는 요인이지만 단독 원인으로 보기는 어렵다. 상세 결과는 [Experiment 01 README](experiments/01_input_tensor_alignment/README.md)에 정리했다.
-
-Experiment 02 Attempt 1은 Keras lifecycle bug로 무효 처리하고 archive에만 보존했다. 수정 후 Attempt 2는 runtime order validation을 통과했다. 공식 결과에서 Macro F1 Signed Mean Gap은 4.23%p에서 1.32%p로 68.87% 감소했고, Mean Absolute Paired Gap은 4.23%p에서 3.17%p로 25.18% 감소했다. Baseline의 세 Seed 모두 PyTorch 우위였던 방향도 Keras/PyTorch/Keras로 바뀌었다. 다만 Seed 123의 Macro F1 Gap은 +6.73%p였고 양쪽 Seed 변동성이 증가했으므로 Batch Order를 단독 원인으로 보지 않는다. 상세 결과는 [Experiment 02 README](experiments/02_batch_order_alignment/README.md)에 정리했다.
-
-Experiment 03의 유효한 Augmentation Alignment에서는 Macro F1 Signed Mean Gap이 4.23→2.31%p로 45.52% 감소했으나 Mean Absolute Paired Gap은 4.23→3.65%p로 13.71% 감소했다. Seed 2026에서는 Keras가 역전했고 Seed 123에는 +6.40%p Gap이 남았다. 양쪽 Framework의 평균 Accuracy와 F1도 Baseline보다 낮아져 Gap 감소를 성능 향상으로 해석할 수 없다. Phase 1의 독립 branch 중 02가 가장 큰 Seed-level absolute F1 Gap 감소를 보였지만 이를 주요 원인으로 확정하지 않는다. [Experiment 03 README](experiments/03_augmentation_alignment/README.md)에 runtime·history·한계를 기록했다.
-
-Experiment 04에서는 동일 W0/input에서 Conv1까지 exact였고 BN1부터 작은 비영 차이가 관찰됐다. 초기 gradient 방향은 거의 동일했지만 update와 반복 학습을 거치며 parameter/BN trajectory가 분리됐다. Epoch 30 train accuracy와 Best Validation Macro F1 평균은 거의 같았으나, fixed-final validation/Test는 특히 PyTorch Seed 2026에서 크게 악화됐다. 이는 Framework 차이를 일관된 성능 우열보다 optimization trajectory와 generalization timing 차이로 보는 해석을 지지한다. 상세 수치와 `Answer to the Research Question`은 [Experiment 04 README](experiments/04_common_initialization_controlled_training/README.md)에 기록했다.
-
-Experiment 05에서는 Common Adam이 initial update divergence를 크게 줄였지만 long-term trajectory separation은 대부분 다시 나타났다. 따라서 현재 결과는 Framework difference를 하나의 optimizer 구현으로 설명하기보다 작은 numerical/gradient/state difference가 반복 학습으로 누적되는 과정으로 보는 해석과 더 잘 맞는다. 상세 early/epoch trajectory, Fixed/Best 결과와 연구질문 답변은 [Experiment 05 README](experiments/05_gradient_optimizer_divergence/README.md)에 기록했다.
-
-Experiment 06에서는 Common BN이 native BN running-state update discrepancy를 거의 제거하고 first-step divergence를 평균적으로 줄였지만, 감소는 몇 step 뒤 사라졌으며 Epoch 30 parameter separation은 05와 거의 같았다. 큰 장기 BN-state distance는 이미 분리된 trajectory의 downstream consequence를 일부 반영할 수 있다. 이 결과가 남긴 state feedback 질문은 Experiment 07에서 직접 진단했다. 상세 결과는 [Experiment 06 README](experiments/06_batchnorm_state_divergence/README.md)에 기록했다.
-
-Experiment 07에서는 exact full-state re-synchronization 뒤 새로 생성된 one-step weight divergence가 대부분 `1e−8–1e−6` 수준인 반면, free-running checkpoint에는 최대 약 `1.10`의 accumulated divergence가 유지됐다. 이는 accumulated state-dependent feedback과 전반적으로 강하게 일치한다. Epoch 20/30 일부 K-anchor/Seed의 local spike는 Experiment 08에서 분석했으며, 9개 case 모두 BN1 batch mean이 first observed numerical entry point였지만 이후 최대 gradient/update 위치는 state와 anchor에 따라 달랐다.
-
-- Seed마다 우위가 바뀌면 framework 효과보다 stochastic variation이 큰 것으로 보고 H0를 기각하지 않는다.
-- 세 Seed에서 같은 방향의 gap이 반복되면 H1을 검토할 재현성 근거로 사용한다.
-- 특정 single-factor branch에서만 gap이 크게 줄면 해당 요소를 주요 원인 후보로 본다.
-- 어느 branch에서도 줄지 않으면 변수 간 interaction 또는 framework 내부 연산 차이를 검토한다.
-- 이 규칙은 자동으로 인과성을 확정하지 않으며, Seed별 분산과 layer 진단을 함께 해석한다.
-
-### 17. Hypothesis Evaluation
-
-<!-- HYPOTHESIS_RESULTS_START -->
-| Hypothesis | Result | Evidence |
-|---|---|---|
-| H0 | 근거 약화 | 3 Seed 모두 같은 방향의 Accuracy/Macro F1 Gap이 관찰됨. 3 Seed만으로 통계적 기각을 주장하지 않음 |
-| H1 | 추가 분석 근거 확보 | 반복 가능한 Framework Gap이 관찰되어 Phase 1 탐색과 Phase 2 통제 실험을 진행함 |
-| H2 | 부분 지지 | Input, Batch Order, Augmentation 독립 branch 모두 Baseline 대비 F1 Gap 감소 방향. 03은 signed 45.52%, mean absolute paired 13.71% 감소했으나 양쪽 절대 성능 하락·Seed 분산 증가가 동반됨. 단독 원인으로 확정하지 않음 |
-| H3 | 지지되는 관찰 확보 | W0·입력·Conv1 exact, 08의 9개 trace에서 BN1 batch mean이 반복 가능한 first non-zero stage. Common Adam/Common BN 통제 후에도 장기 separation이 유지되고 full-state sync 뒤 새 one-step difference는 작아, state-dependent accumulation과 일치함. 특정 연산의 unique causality는 미확정 |
-<!-- HYPOTHESIS_RESULTS_END -->
-
-### 18. Conclusion
-
-Phase 2는 strict controlled environment에서 Input과 Conv1 output 이후 BN1 batch-mean reduction을 반복 가능한 first observed numerical entry point로 식별했다. Native Adam과 native BN semantics는 early/local divergence에 기여했지만 long-term separation을 충분히 설명하지 못했다. Full-state re-synchronization과 layer trace를 함께 보면, 작은 difference가 training state를 바꾸고 다음 step에 반복 전달되는 accumulated state-dependent feedback이 현재 관찰과 가장 잘 맞는다.
-
-큰 parameter-space separation은 유사한 train accuracy와 공존했고 validation/test 결과는 Seed와 checkpoint selection에 따라 달랐다. 따라서 이 결과는 Framework superiority나 unique low-level cause를 확립하지 않는다. 상세 결론은 [Phase 2 final conclusion](PHASE2_STRICT_CONTROLLED_CONCLUSION.md)에 있다.
-
-### 19. Limitations
-
-- Seed가 3개뿐이라 stochastic distribution 추정력이 제한적이다.
-- 하나의 dataset과 하나의 CNN architecture만 연구한다.
-- 고정 70/15/15 split 하나만 사용하므로 다른 split에서의 변동은 측정하지 않는다.
-- GPU reduction과 일부 kernel은 완전한 bitwise reproducibility를 보장하지 않는다.
-- 설정을 맞춰도 framework 내부 연산과 Adam 구현이 bitwise identical하지 않을 수 있다.
-- 증강 operator의 interpolation/fill/rounding을 완전히 등가화하기 어렵다.
-- OFAT은 개별 효과를 확인하지만 둘 이상의 변수가 함께 작용하는 interaction effect를 직접 측정하지 못한다.
-- Keras는 TensorFlow Metal, PyTorch는 MPS backend를 사용한다. 동일 Apple GPU에서도 backend 구현이 다르므로 `training_time_seconds`는 기록하되 성능 차이 원인의 주 판단 지표로 사용하지 않는다. 주요 지표는 Macro F1, Accuracy, Test Loss, Framework Gap과 Baseline 대비 Gap 변화다.
-
-### 20. Future Work
-
-Phase 2는 Completed다. Experiment 09는 생성하지 않았으며 추가 작업은 Optional Extensions로만 남긴다. 가능한 방향은 CPU-only/동일 CPU path 비교, float64 diagnostic, deterministic reduction 및 low-level kernel profiling, BatchNorm이 없는 대안 구조, 더 많은 Seed·architecture·dataset에서의 재현과 statistical analysis다.
-
-### 21. Project Structure
-
-```text
-common/                 Phase 1 유틸리티 + Phase 2 canonical config/data/W0/training 유틸리티
-experiments/00...03/    Phase 1 native/preliminary 실험 및 보존된 결과
-experiments/04_common_initialization_controlled_training/  완료된 Phase 2 controlled baseline·diagnostic·trajectory
-experiments/05_gradient_optimizer_divergence/  완료된 Common Adam 통제·diagnostic·trajectory
-experiments/06_batchnorm_state_divergence/  완료된 Common BN 통제·diagnostic·trajectory
-experiments/07_multistep_state_resynchronization/  완료된 checkpoint-local state re-sync diagnostic
-experiments/08_layer_by_layer_trajectory/  완료된 9-case layer-wise one-step diagnostic
-experiments/external_validation/  Phase 2 외적 타당성 검증(V1–V3 완료, V4 Next)
-docs/external_validation_plan.md  External Validation 격리 원칙·순서·validity gate
-PHASE2_STRICT_CONTROLLED_CONCLUSION.md  완료된 Phase 2 종합 결론
-scripts/                 학습 없는 실행환경/GPU 검증
-summary/                 전체 집계 및 README marker 갱신
-emotion_dataset/         물리적 train/val/test × 8 classes (Git 제외)
-*.ipynb                  수정하지 않은 reference notebooks
-```
-
-### 22. How to Run
-
-macOS Apple Silicon에서 `.venv-metal`만 최종 실행환경으로 사용한다. Conda base가 활성화돼 있다면 먼저 비활성화한 뒤 환경을 활성화한다.
-
-```bash
-conda deactivate  # Conda를 사용 중인 경우만
-source .venv-metal/bin/activate
-python -m pip install -r requirements.txt
-```
-
-`requirements.txt`는 직접 사용하는 package만 읽기 쉽게 고정하고, `requirements-lock.txt`는 검증된 `.venv-metal`의 전체 transitive dependency를 보존한다. 환경을 완전히 동일하게 복원하려면 `python -m pip install -r requirements-lock.txt`를 사용한다.
-
-환경 및 실제 GPU tensor 연산 검증:
-
-```bash
-.venv-metal/bin/python scripts/check_environment.py
-.venv-metal/bin/python -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
-.venv-metal/bin/python -c "import torch; print(torch.backends.mps.is_available())"
-```
-
-정상 기대값은 TensorFlow `GPU:0` 감지와 PyTorch MPS `True`다.
-
-```bash
-.venv-metal/bin/python experiments/00_baseline_final_cnn_3seed/keras.py
-.venv-metal/bin/python experiments/00_baseline_final_cnn_3seed/pytorch.py
-```
-
-00–03은 완료된 Phase 1 결과이며 재실행할 필요가 없다. 각 Phase 1 학습 파일은 `RUN_TRAINING`을 켤 때만 세 Seed를 순차 학습한다. 04는 별도 Phase 2 실험으로, 아래 사전 검증과 첫-step 진단은 전체 학습을 시작하지 않는다.
-
-```bash
-.venv-metal/bin/python experiments/00_baseline_final_cnn_3seed/compare.py
-.venv-metal/bin/python experiments/01_input_tensor_alignment/keras.py
-.venv-metal/bin/python experiments/01_input_tensor_alignment/pytorch.py
-.venv-metal/bin/python experiments/01_input_tensor_alignment/compare.py
-.venv-metal/bin/python summary/compare_all_experiments.py
-.venv-metal/bin/python summary/update_readme.py
-```
-
-Phase 1 집계 도구는 00–03 결과만 다룬다. 04의 학습과 비교는 이미 완료됐으므로 아래 명령은 결과를 새로 만들기 위한 필수 절차가 아니다. 기존 결과는 Experiment 04의 `results/`와 README에서 확인한다.
-
-```bash
-.venv-metal/bin/python experiments/04_common_initialization_controlled_training/first_step_trace.py
-.venv-metal/bin/python experiments/04_common_initialization_controlled_training/early_step_trace.py
-.venv-metal/bin/python experiments/04_common_initialization_controlled_training/checkpoint_roundtrip.py
-.venv-metal/bin/python experiments/04_common_initialization_controlled_training/preflight_validate.py
-.venv-metal/bin/python experiments/04_common_initialization_controlled_training/keras_controlled_train.py
-.venv-metal/bin/python experiments/04_common_initialization_controlled_training/pytorch_controlled_train.py
-.venv-metal/bin/python experiments/04_common_initialization_controlled_training/compare_controlled.py
-```
-
-사전 검증과 first/early-step 진단은 Full Training 결과와 구분한다. 완료된 최종 성능은 fixed Epoch 30 primary와 best-validation secondary를 별도로 해석한다.
-
-Experiment 07은 full training을 수행하지 않으며 아래 순서로 Experiment 06 checkpoint clone에서 one-step diagnostic만 재생한다.
-
-```bash
-.venv-metal/bin/python experiments/07_multistep_state_resynchronization/resync_preflight.py
-.venv-metal/bin/python experiments/07_multistep_state_resynchronization/free_running_probe.py
-.venv-metal/bin/python experiments/07_multistep_state_resynchronization/resynchronized_probe.py
-.venv-metal/bin/python experiments/07_multistep_state_resynchronization/compare_resync.py
-```
-
-Experiment 08도 Full Training 없이 selected case의 layer trace만 수행한다. 기존 결과가 있으면 다른 내용으로 overwrite하지 않는다.
-
-```bash
-.venv-metal/bin/python experiments/08_layer_by_layer_trajectory/layer_trace_preflight.py
-.venv-metal/bin/python experiments/08_layer_by_layer_trajectory/layer_trace.py
-.venv-metal/bin/python experiments/08_layer_by_layer_trajectory/summarize_trace.py
-```
-
-External Validation V1은 같은 9개 case를 single-thread CPU에서 one-step만 재생한다. 아래 두 명령 어디에도 Full Training loop는 없으며 `RUN_FULL_TRAINING=False` safety guard를 유지한다.
-
-```bash
-.venv-metal/bin/python experiments/external_validation/V1_cpu_only/src/v1_preflight.py
-.venv-metal/bin/python experiments/external_validation/V1_cpu_only/src/v1_trace.py
-```
-
-V2도 Full Training 없이 3개 initial shared state의 GPU one-step만 수행한다.
-
-```bash
-.venv-metal/bin/python experiments/external_validation/V2_resnet18_bn/src/resnet18_preflight.py
-.venv-metal/bin/python experiments/external_validation/V2_resnet18_bn/src/resnet18_trace.py
-.venv-metal/bin/python experiments/external_validation/V2_resnet18_bn/src/compare_custom_vs_resnet18.py
-```
-
-V3는 같은 GPU custom CNN에서 BN을 제거한 3개 initial shared state만 진단한다.
-
-```bash
-.venv-metal/bin/python experiments/external_validation/V3_bn_free_cnn/src/bnfree_preflight.py
-.venv-metal/bin/python experiments/external_validation/V3_bn_free_cnn/src/bnfree_trace.py
-.venv-metal/bin/python experiments/external_validation/V3_bn_free_cnn/src/compare_bn_vs_bnfree.py
-```
+연구 실험 단계는 종료됐다. CUDA/NVIDIA replication, reduction-operator microbenchmark, 추가 architecture/framework와 larger-seed study는 이 repository scope 밖의 Future Work이며 현재 프로젝트의 미완료 TODO가 아니다. 기존 결과를 보존하기 위해 training entry point의 `RUN_TRAINING`/`RUN_FULL_TRAINING` 기본값은 비활성 상태로 유지한다.

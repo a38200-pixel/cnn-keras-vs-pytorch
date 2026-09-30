@@ -124,7 +124,7 @@ Phase 2 GPU의 최초 진입점은 CPU에서 동일하게 유지되지 않았다
 
 ## 다음 검증
 
-V2는 **Next**이며 통제 방법론을 유지한 채 아키텍처를 ResNet18 + BatchNorm으로 변경한다. 이번 단계에서는 V2, V3, V4를 구현하거나 실행하지 않았다.
+이후 계획했던 V2–V4는 모두 완료됐다. V1의 실행 당시에는 후속 validation을 실행하지 않았다는 provenance를 유지하며, 최종 상태는 상위 [External Validation README](../README.md)에서 관리한다.
 
 ## 최종 검증 상태
 

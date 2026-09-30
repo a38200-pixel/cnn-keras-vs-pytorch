@@ -15,9 +15,9 @@ Phase 2(Experiments 04–08)는 Young AffectNet HQ, custom CNN+BN, Metal/MPS, fl
 | V1 | CPU-only 실행 | 실행 장치/경로 | Experiment 08과 동일한 9개 synchronized one-step case | **Completed / VALID** |
 | V2 | ResNet18 + BatchNorm | 아키텍처 | 동일 GPU stack의 3-Seed initial synchronized one-step | **Completed / VALID** |
 | V3 | BatchNorm 없는 CNN | BatchNorm presence | Phase 2 geometry/W0와 GPU stack을 유지한 3-Seed initial synchronized one-step | **Completed / VALID** |
-| V4 | CIFAR-10 | Dataset/workload | Diagnostic 전 계획 및 data manifest | **Next** |
+| V4 | CIFAR-10 Independent Workload Validation | Workload 전환 | 3-Seed initial one-step + 3-Seed×2-framework full training | **Completed / VALID** |
 
-각 validation에서는 가능한 한 하나의 요인만 변경한다. 피할 수 없는 부수 차이는 limitation으로 명시한다.
+V1–V3는 가능한 한 하나의 주요 요인을 격리한다. V4는 dataset-only intervention이 아니며 image domain, resolution, sample/class 수, classifier shape, spatial reduction geometry, augmentation policy와 update 수가 함께 달라지는 independent workload validation이다.
 
 ## V1 수행 절차
 
@@ -50,7 +50,7 @@ Gate가 실패하면 diagnostic 근거는 보존하되 V1을 invalid/incomplete�
 
 V1은 테스트한 GPU 실행 경로와 CPU 실행을 구분하지만 TensorFlow와 PyTorch에 동일 backend를 제공하지는 않는다. 진입점이 유지되면 테스트 조건에서 장치 간 재현성을 지지한다. 진입점이 바뀌면 execution-stack sensitivity를 시사한다. 거의 또는 완전히 exact한 결과가 나온다면 제거된 GPU 경로가 해당 환경의 one-step 차이에 실질적으로 기여했을 가능성을 시사하지만, 고유 원인을 증명하지는 않는다.
 
-V4는 구현 전에 preflight 명세를 확정해야 한다. 현재 승인된 External Validation 범위에는 Full Training이 없다.
+V4의 preflight와 training 명세는 구현에 고정됐고 6개 Full Training run과 후속 분석이 완료됐다. 이 계획 문서는 완료된 설계 기록으로 보존한다.
 
 ## V1 결과
 
@@ -72,7 +72,36 @@ Phase 2 custom CNN geometry와 Conv `bias=False`, Metal/MPS GPU, fixed batch, Co
 
 V1 CPU custom CNN은 9/9 case에서 Conv1, Phase 2 GPU custom CNN은 9/9 case에서 BN1 batch mean, V2 GPU ResNet18은 3/3 Seed에서 stem BN batch mean, V3 GPU BN-free custom CNN은 3/3 Seed에서 GAP가 최초 비영 stage였다. 따라서 exact entry point는 execution stack과 BN presence에 민감하며, downstream propagation은 architecture와 Seed에도 민감하다. 어느 관찰도 특정 연산이나 backend의 보편적 인과성을 확정하지 않는다.
 
-V3 결과는 tested GPU BN entry가 BN presence에 의존한다는 가설을 지지하지만, divergence 자체는 GAP 이후 남았으므로 BN을 유일 원인으로 보는 해석을 한정한다. 독립 dataset/workload를 다루는 V4가 **Next**이며 이번 작업에서는 구현·실행하지 않았다.
+V3 결과는 tested GPU BN entry가 BN presence에 의존한다는 가설을 지지하지만, divergence 자체는 GAP 이후 남았으므로 BN을 유일 원인으로 보는 해석을 한정한다. 독립 workload V4도 완료됐으며 first entry와 장기 separation이 모두 관찰됐다.
+
+## V4 설계와 실행 계획
+
+V4의 Primary RQ는 independent CIFAR-10 workload로 옮겼을 때 initial numerical divergence pattern과 subsequent training trajectory separation이 테스트한 GPU stack에서 모두 관찰되는지다.
+
+### Stage A
+
+- Split 확정 뒤 sorted training indices의 첫 32개를 diagnostic 전용 fixed batch로 사용한다.
+- Seed 42/123/2026의 shared W0에서 forward/loss/backward/CommonAdam 1 update를 trace한다.
+- CommonBN 내부 reduction을 포함한 최초 비영 forward stage, backward, parameter gradient, update와 post-weight distance를 기록한다.
+- Plain/traced equivalence 및 fresh-run repeatability gate를 통과해야 layer-level 결과를 해석한다.
+
+### Stage B
+
+- Official train 50,000을 split seed 42로 class별 4,500/500, 전체 45,000/5,000으로 고정하며 official test 10,000은 마지막 평가에만 쓴다.
+- Seed 42/123/2026 × Keras/PyTorch 총 6개 run, 30 epochs, batch 32, constant lr 0.001이다.
+- CommonBN/CommonAdam, float32, mean sparse cross-entropy, exact paired W0와 Common NumPy epoch order를 사용한다.
+- Augmentation이나 dataset mean/std normalization은 사용하지 않고 `uint8 → float32 / 255`만 적용한다.
+- 45,000 samples에서 1 epoch은 1,407 updates, 마지막 batch는 8개이며 30 epochs는 42,210 updates다.
+
+### Initialization과 trajectory 비교
+
+Phase 2와 shape가 같은 Conv1–4, BN affine/running state와 FC128 W0를 exact 재사용한다. 128→10 classifier만 Seed별 deterministic Glorot-uniform canonical W0를 생성해 양 framework에 exact load한다. 구현상 trainable parameter는 각각 423,082개, BN running state는 960 values다.
+
+Epoch 0/1/5/10/20/30 snapshot은 같은 workload pass 수를 비교한다. Global step 0/321/1,605/3,210/6,420/9,630 snapshot은 Phase 2와 같은 optimizer-update budget을 기술적으로 비교한다. Step-matched 결과도 workload를 causal-equivalent하게 만들지는 않으며 classifier는 8-class와 10-class라 cross-workload direct paired comparison에서 제외한다.
+
+Checkpoint는 update 완료 후 증가한 global step과 CommonAdam internal step이 exact하게 일치할 때만 저장한다. 분석 단계에서 metadata와 snapshot completeness를 다시 검증한다. Minimum validation loss로 best checkpoint를 정하고, Epoch 30 final과 best-validation checkpoint의 official test loss/accuracy/macro F1을 30 epochs 완료 뒤 평가한다.
+
+최종 결과에서 Stage A 3/3 Seeds의 first non-zero는 `bn1.batch_mean`이었고 Stage B E30 global relative L2 평균은 `1.1565`였다. Same-update-budget Step 9,630은 V4 `0.9416`, Phase 2 `1.0976`이었다. 6/6 runs, checkpoint/test 및 NaN/Inf gate가 모두 통과해 V4는 `Completed / VALID`다.
 
 ## Future Work 가설: Reduction Operator Isolation
 

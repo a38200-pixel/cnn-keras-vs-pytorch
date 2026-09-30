@@ -1,0 +1,14 @@
+{
+  "framework": "pytorch",
+  "seed": 42,
+  "checkpoint_name": "step01605",
+  "checkpoint_type": "step",
+  "epoch": 2,
+  "global_step": 1605,
+  "common_adam_step": 1605,
+  "capture_timing": "immediately_after_update",
+  "model_state_sha256": "668588c1cfc0982afb97f173a2dd280735b3a55e9e6fff51e5b4aff4262f6182",
+  "split_hash": "334af14d1949eb80b4606f0d35cb919f7de22b0164ec4c255a51ef34e9a36c4a",
+  "epoch_order_manifest_hash": "44fdc22a6edff6ef65025bc7a38af52ffba4d2000e17ce9e3d8778c0c86ce77a",
+  "config_sha256": "dd36a85c6e4b4a11508a65224e1a6e07629150dbe24180bfec327266311b5a8f"
+}

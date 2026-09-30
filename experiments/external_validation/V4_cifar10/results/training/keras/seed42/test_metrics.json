@@ -1,0 +1,19 @@
+{
+  "final": {
+    "epoch": 30,
+    "loss": 1.1836047052383423,
+    "accuracy": 0.7766,
+    "macro_f1": 0.7789927647646774
+  },
+  "best_val": {
+    "epoch": 5,
+    "loss": 0.7974101010322571,
+    "accuracy": 0.7408,
+    "macro_f1": 0.7372362319214442
+  },
+  "framework": "keras",
+  "seed": 42,
+  "completed_epochs": 30,
+  "global_step": 42210,
+  "config_sha256": "dd36a85c6e4b4a11508a65224e1a6e07629150dbe24180bfec327266311b5a8f"
+}

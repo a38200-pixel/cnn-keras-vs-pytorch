@@ -1,0 +1,9 @@
+{
+  "v4_dataset_integrity": "VALID",
+  "official_train_count": 50000,
+  "official_test_count": 10000,
+  "train_raw_sha256": "47af8b02cfcfb6cdf3dbbd1969ad7f1b70f4413f6f80f437b020ee4e5bc8304a",
+  "test_raw_sha256": "f9b1e2130bab680db56eb06d886f7f1ad0f1183907ceff4659d1735c890f5b04",
+  "config_sha256": "dd36a85c6e4b4a11508a65224e1a6e07629150dbe24180bfec327266311b5a8f",
+  "download_performed": false
+}

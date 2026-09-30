@@ -1,5 +1,7 @@
 # Phase 2 - Strict Controlled Framework Comparison
 
+> 이 문서는 완료된 Phase 2의 scoped conclusion이다. 이후 External Validation V1–V4도 완료됐으며 프로젝트 전체 결론은 [Final Research Report](docs/FINAL_RESEARCH_REPORT.md)를 따른다.
+
 ## 1. Research Question
 
 > When the same CNN is trained in Keras and PyTorch under increasingly controlled conditions, where does the first numerical difference appear, how does it propagate, and what explains the large long-term trajectory divergence?

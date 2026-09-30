@@ -270,4 +270,4 @@ NEW_FULL_TRAINING_EXECUTED = FALSE
 V2 STATUS = Completed / VALID
 ```
 
-다음 단계는 V3 BatchNorm 없는 CNN 검증이며, 이번 작업에서는 구현하거나 실행하지 않았다.
+이후 V3 BN-free CNN과 V4 CIFAR-10 validation은 모두 완료됐다. V2 실행 당시 후속 실험을 실행하지 않았다는 provenance는 유지하며, 최종 상태는 상위 [External Validation README](../README.md)에서 관리한다.

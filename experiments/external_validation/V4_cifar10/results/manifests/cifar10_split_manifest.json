@@ -1,0 +1,57 @@
+{
+  "dataset": "CIFAR-10",
+  "split_seed": 42,
+  "official_train_count": 50000,
+  "official_test_count": 10000,
+  "train_count": 45000,
+  "validation_count": 5000,
+  "per_class": {
+    "0": {
+      "train": 4500,
+      "validation": 500
+    },
+    "1": {
+      "train": 4500,
+      "validation": 500
+    },
+    "2": {
+      "train": 4500,
+      "validation": 500
+    },
+    "3": {
+      "train": 4500,
+      "validation": 500
+    },
+    "4": {
+      "train": 4500,
+      "validation": 500
+    },
+    "5": {
+      "train": 4500,
+      "validation": 500
+    },
+    "6": {
+      "train": 4500,
+      "validation": 500
+    },
+    "7": {
+      "train": 4500,
+      "validation": 500
+    },
+    "8": {
+      "train": 4500,
+      "validation": 500
+    },
+    "9": {
+      "train": 4500,
+      "validation": 500
+    }
+  },
+  "train_indices_sha256": "6574d06c4bfe87dd82fead3304edc19b903b412c068365775f3357d6a6b449f3",
+  "validation_indices_sha256": "2f07e4574bf8a17dd9728ce9b42893cbc3c87e2425ae2ed0253010b7ffee38b8",
+  "test_identity": "official_test_indices_0_to_9999",
+  "test_raw_sha256": "f9b1e2130bab680db56eb06d886f7f1ad0f1183907ceff4659d1735c890f5b04",
+  "config_sha256": "dd36a85c6e4b4a11508a65224e1a6e07629150dbe24180bfec327266311b5a8f",
+  "v4_split_check": "VALID",
+  "split_manifest_sha256": "334af14d1949eb80b4606f0d35cb919f7de22b0164ec4c255a51ef34e9a36c4a"
+}
